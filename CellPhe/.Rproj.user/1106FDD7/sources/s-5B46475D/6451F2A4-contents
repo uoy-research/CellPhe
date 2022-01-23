@@ -1,0 +1,39 @@
+predictSegErrors<-function(smalldata, bigdata, smallclass, bigclass, num, testset, dataID, proportion) 
+{ 
+  n1 = length(smallclass)
+  n2 = length(bigclass)
+  treelist = list()
+  for (i in 1:num)
+  { 
+    inds = sample.int(n2, n1)
+    data = rbind(bigdata[inds,],smalldata)
+    class = c(bigclass[1:n1], smallclass)
+    data = data.frame(class, data)
+    mytree = tree::tree(as.factor(class)~., data=data)
+    treelist[[i]] <- mytree 
+  } 
+  
+  trees<-treelist
+  
+  pred = matrix(" ", nrow = num, ncol = nrow(testset)) 
+  for (i in 1:num)
+  { 
+    x = predict(trees[[i]], testset, type = "class")
+    pred[i,] <- x 
+  } 
+  predictions<-pred
+  
+  testnumseg = vector(mode = "integer", length = ncol(predictions)) 
+  for (i in 1:ncol(predictions))
+  { 
+    testnumseg[i] = length(which(predictions[,i] == 2)) 
+  } 
+  testvote = rep("nonseg", length = ncol(predictions))
+  for (i in 1:ncol(predictions))
+  { 
+    if (testnumseg[i] >  proportion * nrow(predictions)) testvote[i] = "seg" 
+  } 
+  ind = which(testvote == "seg")
+  segtest = dataID[ind]
+  return(segtest)
+}

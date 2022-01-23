@@ -5,15 +5,15 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "39551084",
+    "hash" : "0",
     "id" : "859FEF08",
     "lastKnownWriteTime" : 1642780282,
     "last_content_update" : 1642780282619,
     "path" : "~/Desktop/CellPhe_RPackage/CellPhe/R/prepareSegmentationTrainingSet.R",
     "project_path" : "R/prepareSegmentationTrainingSet.R",
     "properties" : {
-        "cursorPosition" : "18,88",
-        "scrollLine" : "1"
+        "cursorPosition" : "46,10",
+        "scrollLine" : "27"
     },
     "read_only" : false,
     "read_only_alternatives" : [

@@ -1,0 +1,30 @@
+predictSegErrors_Ensemble<-function(smalldata, bigdata, smallclass, bigclass, num, K, testset, dataID, proportion) 
+{ 
+  votes<-list()
+  for(i in c(1:K))
+  {
+    segtest<-predictSegErrors(smalldata, bigdata, smallclass, bigclass, num, testset, dataID, proportion)
+    votes[[i]]<-segtest
+  }
+  
+  View(votes)
+  
+  list<-NULL
+  for(i in c(1:K)) 
+  { 
+    list<-c(list, as.character(votes[[i]])) 
+  } 
+  View(list)
+  segtest<-vector()
+  j=1 
+  freqdata<-as.data.frame(table(list)) 
+  for(i in c(1:dim(freqdata)[1]))
+  { 
+    if(freqdata$Freq[i] >= K/2) 
+    { 
+      segtest[j] = as.character(freqdata$list[i]) 
+      j=j+1 
+    }
+  }
+  return(segtest)
+}
