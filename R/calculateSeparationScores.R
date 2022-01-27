@@ -10,6 +10,7 @@
 #' @export
 #'
 #' @examples separationscores<-calculateSeparationScores(Untreated, Treated, 0.1)
+#' @export
 calculateSeparationScores<-function(group1data, group2data, threshold)
 {
   group1data<-as.data.frame(group1data)

@@ -15,9 +15,9 @@
 #' @param proportion Proportion of votes needed for a final classification of segmentation error to be made (e.g. 0.7 if 70% of the votes are needed for segmentation error classification to be made)
 #'
 #' @return This function returns the list of identifiers that were predicted as segmentation errors
-#' @export
 #'
 #' @examples segmentation_errors <- predictSegErrors(segerrordata, correctsegdata, segerrorlabels, correctseglabels, 50, testset, testset$cellnames, 0.7)
+#' @export
 predictSegErrors<-function(smalldata, bigdata, smallclass, bigclass,
                            num, testset, dataID, proportion) 
 { 

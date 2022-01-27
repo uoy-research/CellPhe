@@ -18,6 +18,8 @@
 #'
 #' @examples prepareSegmentationTrainingSet(groundtruthsegerrors, groundtruthcorrectsegs)
 #' 
+#' @export
+#' 
 prepareSegmentationTrainingSet<-function(segerrors,correctsegs)
 {
   Segerrortraining <- segerrors

@@ -10,10 +10,11 @@
 #' @return Remaining columns list x and y coordinates alternately until all boundary coordinates have been listed, in which case 0s are used to fill the remainder of the row
 #'
 #' @examples outputBoundaryCoords("myZipFolderOfROIs")
+#' @export
 outputBoundaryCoords<-function(zipFileOfROIs)
 {
   zipFileOfROIs<-paste(zipFileOfROIs,".zip",sep='')
-  roi<-RImageJROI::read.ijzip()
+  roi<-RImageJROI::read.ijzip(zipFileOfROIs)
   maxboundarylength = 0
   
   for(i in c(1:length(roi)))

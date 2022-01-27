@@ -8,6 +8,7 @@
 #' @param predictedSegErrors Output from either CellPhe::predictSegErrors() or CellPhe::predictSegErrors_Ensemble(), a list of cell identifiers for cells classified as segmentation error
 #'
 #' @examples removePredictedSegErrors(testset, 2, predicted_seg_errors)
+#' @export
 removePredictedSegErrors<-function(testset, k, predictedSegErrors)
 {
   testset<-subset(testset, testset[,k] %in% predictedSegErrors == FALSE)
