@@ -14,18 +14,17 @@
 /* number of wavelet levels */
 #define LEVELS 4
 
+typedef struct varnames {
+  char var[100];
+} NAMES;
 
-typedef struct varnames{
-   char var[100];
-}NAMES;
-
-typedef struct inputvars{
+typedef struct inputvars {
   double *frame;
   double *stats;
   double *vars;
-}INVARS;
+} INVARS;
 
-typedef struct bpix{
+typedef struct bpix {
   int *xpix;
   int *ypix;
   int blength;
@@ -33,9 +32,9 @@ typedef struct bpix{
   int xlim2;
   int ylim1;
   int ylim2;
-}BOUND;
+} BOUND;
 
-typedef struct apix{
+typedef struct apix {
   int *xpix;
   int *ypix;
   int *intensity;
@@ -53,6 +52,6 @@ typedef struct apix{
   double *cooc01;
   double *cooc12;
   double *cooc02;
-}AREA;
+} AREA;
 
 #endif
