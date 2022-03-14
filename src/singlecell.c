@@ -6,20 +6,30 @@
 #include "constants.h"
 
 int readLine(FILE *fp);
-void cooccur(AREA *object, int nframes, int *missingframe);
+void cooccur(AREA *object, int cooccurrence_levels, int nframes, int *missingframe);
 void minBox(BOUND *boundary, INVARS *input, int inputnum, int nframes, int *missingframe);
-void varFromCentre(BOUND *boundary, INVARS *input, int inputnum, int nframes, int *missingframe);
+void varFromCentre(BOUND *boundary, INVARS *input, int maximum_boundary_length, int inputnum, int nframes, int *missingframe);
 void curvature(BOUND *boundary, INVARS *input, int inputnum, int nframes, int *missingframe);
 void atob(BOUND *boundary, INVARS *input, int inputnum, int nframes, int *missingframe);
 void polyClass(BOUND *boundary, INVARS *input, int inputnum, int nframes, int *missingframe);
 void textureVariables(AREA *object, BOUND *boundary, INVARS *input, int inputnum, int nframes, int *missingframe);
-void firstOrderOriginal(AREA *object, INVARS *input, int inputnum, int nframes, int *missingframe);
-void cooccurVariables(AREA *object, INVARS *input, int inputnum, int nframes, int *missingframe);
+void firstOrderOriginal(AREA *object, INVARS *input, int maximum_cell_area, int inputnum, int nframes, int *missingframe);
+void cooccurVariables(AREA *object, int cooccurrence_levels, INVARS *input, int inputnum, int nframes, int *missingframe);
 void interpolate(INVARS *input, int numinput, int nframes, int *missingframe);
-double timeSeriesVars(INVARS *input, int numinput, int nframes, int *missingframe);
-void writedata(INVARS *input, int numinput, int nstats, double areaoftraject, NAMES *vname,  char *classlabel);
+double timeSeriesVars(INVARS *input, int max_number_of_frames, int number_of_wavelet_levels, int numinput, int nframes, int *missingframe);
+void getCoocMatrix(double *cooc, int cooccurrence_levels, double *bigimage, int *bigmask, double *smallimage, int *smallmask, int w, int h, int numlevs);
+void waveTran(double *inputArray, int number_of_wavelet_levels, int arraynum, double *outputArray, int *detlength);
+void haralick(double *cooc, int cooccurrence_levels, int num, double *hf);
+void writedata(INVARS *input, int number_of_wavelet_levels, int numinput, int nstats, double areaoftraject, NAMES *vname,  char *classlabel);
 
-int main (int argc, char *argv[])
+int extract (const char* input_file_prefix, const char* class_label, int max_number_of_frames, int maximum_boundary_length, int maximum_cell_area, int cooccurrence_levels, int number_of_wavelet_levels);
+
+int main(int argc, char** argv) {
+  exit(EXIT_SUCCESS);
+}
+
+/* int main (int argc, char *argv[]) */
+int extract (const char* input_file_prefix, const char* class_label, int max_number_of_frames, int maximum_boundary_length, int maximum_cell_area, int cooccurrence_levels, int number_of_wavelet_levels)
 {
   int j, k, ind, ix, iy, xpix, ypix, numvars, nframes, framenum;
   int tmp, dtmp, dtmp1, dtmp2, dtmp3, dtmp4;
@@ -40,19 +50,19 @@ int main (int argc, char *argv[])
   char ch;
   char classlabel[100];
 
-  if (argc != 3) printf("correct usage: ./cellphe cellnum classlabel\n");
-  strcpy(ftfile, argv[1]);
+  /* if (argc != 3) printf("correct usage: ./cellphe cellnum classlabel\n"); */
+  strcpy(ftfile, input_file_prefix);
   strcat(ftfile, "_ft.txt\0");
-  strcpy(bfile, argv[1]);
+  strcpy(bfile, input_file_prefix);
   strcat(bfile, "_b.txt\0");
-  strcpy(imfile, argv[1]);
+  strcpy(imfile, input_file_prefix);
   strcat(imfile, "_im.txt\0");
   
-  strcpy(classlabel, argv[2]);
+  strcpy(classlabel, class_label);
   
   int *missingframe = NULL;
-  missingframe = (int *) malloc (NUMFRAMES * sizeof(int));
-  for (j = 0; j < NUMFRAMES; j++)
+  missingframe = (int *) malloc (max_number_of_frames * sizeof(int));
+  for (j = 0; j < max_number_of_frames; j++)
   {
     missingframe[j] = 1;
   }
@@ -61,21 +71,21 @@ int main (int argc, char *argv[])
   input = (INVARS *) malloc (numinput * sizeof(INVARS));
   for (j = 0; j < numinput; j++)
   {
-    input[j].frame = (double *) malloc (NUMFRAMES * sizeof(double));
+    input[j].frame = (double *) malloc (max_number_of_frames * sizeof(double));
     input[j].stats = (double *) malloc (nstats * sizeof(double));
-    input[j].vars = (double *) malloc ((LEVELS + 1) * 3 * sizeof(double));
+    input[j].vars = (double *) malloc ((number_of_wavelet_levels + 1) * 3 * sizeof(double));
   }
 
   NAMES *vname= NULL;
   vname = (NAMES *) malloc (numinput * sizeof(NAMES));
    
   BOUND *boundary = NULL;
-  boundary = (BOUND *) malloc (NUMFRAMES * sizeof(BOUND));
-  for (j = 0; j < NUMFRAMES; j++)
+  boundary = (BOUND *) malloc (max_number_of_frames * sizeof(BOUND));
+  for (j = 0; j < max_number_of_frames; j++)
   {
-    boundary[j].xpix = (int *) malloc (MAXB * sizeof(int));
-    boundary[j].ypix = (int *) malloc (MAXB * sizeof(int));
-    for (k = 0; k < MAXB; k++)
+    boundary[j].xpix = (int *) malloc (maximum_boundary_length * sizeof(int));
+    boundary[j].ypix = (int *) malloc (maximum_boundary_length * sizeof(int));
+    for (k = 0; k < maximum_boundary_length; k++)
     {
       boundary[j].xpix[k] = 0;
       boundary[j].ypix[k] = 0;
@@ -83,20 +93,20 @@ int main (int argc, char *argv[])
   }
     
   AREA *object = NULL;
-  object = (AREA *) malloc (NUMFRAMES * sizeof(AREA));
-  for (j = 0; j < NUMFRAMES; j++)
+  object = (AREA *) malloc (max_number_of_frames * sizeof(AREA));
+  for (j = 0; j < max_number_of_frames; j++)
   {
-    object[j].xpix = (int *) malloc (MAXA * sizeof(int));
-    object[j].ypix = (int *) malloc (MAXA * sizeof(int));
-    object[j].intensity = (int *) malloc (MAXA * sizeof(int));
-    object[j].image = (int *) malloc (MAXA * sizeof(int));
-    object[j].mask = (int *) malloc (MAXA * sizeof(int));
-    object[j].lev0Pix = (double *) malloc (MAXA * sizeof(double));
-    object[j].lev1Pix = (double *) malloc (MAXA * sizeof(double));
-    object[j].lev2Pix = (double *) malloc (MAXA * sizeof(double));
-    object[j].cooc01 = (double *) malloc (NCOOC*NCOOC * sizeof(double));
-    object[j].cooc12 = (double *) malloc (NCOOC*NCOOC * sizeof(double));
-    object[j].cooc02 = (double *) malloc (NCOOC*NCOOC * sizeof(double));
+    object[j].xpix = (int *) malloc (maximum_cell_area * sizeof(int));
+    object[j].ypix = (int *) malloc (maximum_cell_area * sizeof(int));
+    object[j].intensity = (int *) malloc (maximum_cell_area * sizeof(int));
+    object[j].image = (int *) malloc (maximum_cell_area * sizeof(int));
+    object[j].mask = (int *) malloc (maximum_cell_area * sizeof(int));
+    object[j].lev0Pix = (double *) malloc (maximum_cell_area * sizeof(double));
+    object[j].lev1Pix = (double *) malloc (maximum_cell_area * sizeof(double));
+    object[j].lev2Pix = (double *) malloc (maximum_cell_area * sizeof(double));
+    object[j].cooc01 = (double *) malloc (cooccurrence_levels*cooccurrence_levels * sizeof(double));
+    object[j].cooc12 = (double *) malloc (cooccurrence_levels*cooccurrence_levels * sizeof(double));
+    object[j].cooc02 = (double *) malloc (cooccurrence_levels*cooccurrence_levels * sizeof(double));
   }
     
   /* open feature table */
@@ -204,8 +214,8 @@ int main (int argc, char *argv[])
   }
   fclose(fp);
   
-  cooccur(object, nframes, missingframe);
-  varFromCentre(boundary, input, numvars, nframes, missingframe);
+  cooccur(object, cooccurrence_levels, nframes, missingframe);
+  varFromCentre(boundary, input, maximum_boundary_length, numvars, nframes, missingframe);
   strcpy(vname[11].var, "VfC\0");
   numvars = numvars + 1;
   curvature(boundary, input, numvars, nframes, missingframe);
@@ -241,12 +251,12 @@ int main (int argc, char *argv[])
   strcpy(vname[28].var, "IQ8\0");
   strcpy(vname[29].var, "IQ9\0");
   numvars = numvars + 9;
-  firstOrderOriginal(object, input, numvars, nframes, missingframe);
+  firstOrderOriginal(object, input, maximum_cell_area, numvars, nframes, missingframe);
   strcpy(vname[30].var, "FOmean\0");
   strcpy(vname[31].var, "FOsd\0");
   strcpy(vname[32].var, "FOskew\0");
   numvars = numvars + 3;
-  cooccurVariables(object, input, numvars, nframes, missingframe);
+  cooccurVariables(object, cooccurrence_levels, input, numvars, nframes, missingframe);
   strcpy(vname[33].var, "Hf1_01\0");
   strcpy(vname[34].var, "Hf2_01\0");
   strcpy(vname[35].var, "Hf3_01\0");
@@ -271,8 +281,8 @@ int main (int argc, char *argv[])
   strcpy(vname[48].var, "Den\0");
 
   interpolate(input, numinput, nframes, missingframe);
-  areaoftraject = timeSeriesVars(input, numinput, nframes, missingframe);
-  writedata(input, numinput, nstats, areaoftraject, vname, classlabel);
+  areaoftraject = timeSeriesVars(input, max_number_of_frames, number_of_wavelet_levels, numinput, nframes, missingframe);
+  writedata(input, number_of_wavelet_levels, numinput, nstats, areaoftraject, vname, classlabel);
  
   free(missingframe);
   
@@ -284,14 +294,14 @@ int main (int argc, char *argv[])
   }
   free(input);
     
-  for (j = 0; j < NUMFRAMES; j++)
+  for (j = 0; j < max_number_of_frames; j++)
   {
     free(boundary[j].xpix);
     free(boundary[j].ypix);
   }
   free(boundary);
   
-  for (j = 0; j < NUMFRAMES; j++)
+  for (j = 0; j < max_number_of_frames; j++)
   {
     free(object[j].xpix);
     free(object[j].ypix);
@@ -432,12 +442,12 @@ double getVar(double *array, int num)
  Procedure:  varFromCentre
  Description:    finds variance of the didtance from the boundary to the centre
 ***********************************************************************************************/
-void varFromCentre(BOUND *boundary, INVARS *input, int inputnum, int nframes, int *missingframe)
+void varFromCentre(BOUND *boundary, INVARS *input, int maximum_boundary_length, int inputnum, int nframes, int *missingframe)
 {
   int j, k, x, y, icx, icy;
 
   double *dist   = NULL;
-  dist = (double *) malloc (MAXB * sizeof(double));
+  dist = (double *) malloc (maximum_boundary_length * sizeof(double));
 
   for (k = 0; k < nframes; k++)
   {
@@ -930,7 +940,7 @@ void FOstats(double *array, int num, double *stats)
 Procedure:  firstOrderOriginal
 Description: Extracts first order features from pixel intensity histogram of each cell in each frame
 *****************************************************************************************************/
-void firstOrderOriginal(AREA *object, INVARS *input, int inputnum, int nframes, int *missingframe)
+void firstOrderOriginal(AREA *object, INVARS *input, int maximum_cell_area, int inputnum, int nframes, int *missingframe)
 {
   int c, k;
 
@@ -938,7 +948,7 @@ void firstOrderOriginal(AREA *object, INVARS *input, int inputnum, int nframes, 
   stats = (double *) malloc (3 * sizeof(double));
 
   double *array = NULL;
-  array = (double *) malloc (MAXA * sizeof(double));
+  array = (double *) malloc (maximum_cell_area * sizeof(double));
 
   for (k = 0; k < nframes; k++)
   {
@@ -1007,19 +1017,19 @@ void reScale (int num, double *inputArray, int *mask)
 Procedure:  getCoocMatrix
 Description: creates co-occurrence matrices images on two levels
 ***********************************************************************************************/
-void getCoocMatrix(double *cooc, double *bigimage, int *bigmask, double *smallimage, int *smallmask, int w, int h, int numlevs)
+void getCoocMatrix(double *cooc, int cooccurrence_levels, double *bigimage, int *bigmask, double *smallimage, int *smallmask, int w, int h, int numlevs)
 {
   int i, j, ls, lb, ind, inds, indb, x, y, nc, twos;
   float n;
 
-  nc = NCOOC;
+  nc = cooccurrence_levels;
   n = (float)nc;
   twos = pow(2,numlevs);
   /* rescale the two images */
   reScale (w*h, smallimage, smallmask);
   reScale (twos*twos*w*h, bigimage, bigmask);
 
-  for (j = 0; j < NCOOC*NCOOC; j++)
+  for (j = 0; j < cooccurrence_levels*cooccurrence_levels; j++)
   {
     cooc[j] = 0;
   }
@@ -1038,7 +1048,7 @@ void getCoocMatrix(double *cooc, double *bigimage, int *bigmask, double *smallim
           {
             ls = (int)(n*smallimage[inds]/256.0);
             lb = (int)(n*bigimage[indb]/256.0);
-            ind = lb + ls*NCOOC;
+            ind = lb + ls*cooccurrence_levels;
             cooc[ind]++;
           }
         }
@@ -1093,7 +1103,7 @@ void daub2(double *a, int n, int isign)
 Procedure:    wavelet transform
 Description:  performs 3-level wavelet transform
 ******************************************************************************************/
-void waveTran(double *inputArray, int arraynum, double *outputArray, int *detlength)
+void waveTran(double *inputArray, int number_of_wavelet_levels, int arraynum, double *outputArray, int *detlength)
 {
   int x, k, length;
   double root2 = sqrt(2.0);
@@ -1111,7 +1121,7 @@ void waveTran(double *inputArray, int arraynum, double *outputArray, int *detlen
     xVector[x] = inputArray[x];
   }
 
-  for (k = 0; k < LEVELS; k++)
+  for (k = 0; k < number_of_wavelet_levels; k++)
   {
     ww = 0;
     if (length % 2 != 0) ww = 1;
@@ -1239,7 +1249,7 @@ void shrinkmask(int width, int height, int *mask, int *newmask)
  Procedure:  coocur
  Description:
 *****************************************************************************************/
-void cooccur(AREA *object, int nframes, int *missingframe)
+void cooccur(AREA *object, int cooccurrence_levels, int nframes, int *missingframe)
 {
   int j, k, x, y, ind, jnd;
   int width, height, newwidth, newheight;
@@ -1321,20 +1331,20 @@ void cooccur(AREA *object, int nframes, int *missingframe)
 
       /* calculate co-occurrence matrix between image and first level wavelet approximation */
       double  *cooc01 = NULL;
-      cooc01 = (double *) malloc (NCOOC*NCOOC * sizeof(double));
-      getCoocMatrix(cooc01, newimage, newmask, lev1image, lev1mask, newwidth/2, newheight/2, 1);
+      cooc01 = (double *) malloc (cooccurrence_levels*cooccurrence_levels * sizeof(double));
+      getCoocMatrix(cooc01, cooccurrence_levels, newimage, newmask, lev1image, lev1mask, newwidth/2, newheight/2, 1);
 
       /* calculate co-occurrence matrix between first and second level wavelet approximations */
       double  *cooc12 = NULL;
-      cooc12 = (double *) malloc (NCOOC*NCOOC * sizeof(double));
-      getCoocMatrix(cooc12, lev1image, lev1mask, lev2image, lev2mask, newwidth/4, newheight/4, 1);
+      cooc12 = (double *) malloc (cooccurrence_levels*cooccurrence_levels * sizeof(double));
+      getCoocMatrix(cooc12, cooccurrence_levels, lev1image, lev1mask, lev2image, lev2mask, newwidth/4, newheight/4, 1);
 
       /* calculate co-occurrence matrix between image and second level wavelet approximation */
       double  *cooc02 = NULL;
-      cooc02 = (double *) malloc (NCOOC*NCOOC * sizeof(double));
-      getCoocMatrix(cooc02, newimage, newmask, lev2image, lev2mask, newwidth/4, newheight/4, 2);
+      cooc02 = (double *) malloc (cooccurrence_levels*cooccurrence_levels * sizeof(double));
+      getCoocMatrix(cooc02, cooccurrence_levels, newimage, newmask, lev2image, lev2mask, newwidth/4, newheight/4, 2);
 
-      for (x = 0; x < NCOOC*NCOOC; x++)
+      for (x = 0; x < cooccurrence_levels*cooccurrence_levels; x++)
       {
         object[k].cooc01[x] = cooc01[x];
         object[k].cooc12[x] = cooc12[x];
@@ -1358,7 +1368,7 @@ void cooccur(AREA *object, int nframes, int *missingframe)
 Procedure:  haralick
 Description: calculates Haralick features from a co-occurrence matrix
 *******************************************************************************/
-void haralick(double *cooc, int num, double *hf)
+void haralick(double *cooc, int cooccurrence_levels, int num, double *hf)
 {
   int a, b, c;
   double energy = 0.0;
@@ -1373,14 +1383,14 @@ void haralick(double *cooc, int num, double *hf)
   double corrsum = 0.0;
 
   a = 0;
-  for (c = 0; c < (NCOOC*NCOOC); c++)
+  for (c = 0; c < (cooccurrence_levels*cooccurrence_levels); c++)
   {
     energy = energy + ((cooc[c]/num)*(cooc[c]/num));
   }
 
-  for (b = 0; b < NCOOC; b++)
+  for (b = 0; b < cooccurrence_levels; b++)
   {
-    for(c = 0; c < NCOOC; c++)
+    for(c = 0; c < cooccurrence_levels; c++)
     {
       if(c == 0 && b > 0)
       {
@@ -1398,9 +1408,9 @@ void haralick(double *cooc, int num, double *hf)
   }
 
   a = 0;
-  for(b = 0; b < NCOOC; b++)
+  for(b = 0; b < cooccurrence_levels; b++)
   {
-    for(c = 0; c < NCOOC; c++)
+    for(c = 0; c < cooccurrence_levels; c++)
     {
       if (c == 0 && b > 0)
       {
@@ -1427,7 +1437,7 @@ void haralick(double *cooc, int num, double *hf)
 Procedure:  cooccurVariables
 Description: extract Haralick features from co-occurrence matrices between different wavelet levels
 ***************************************************************************************************/
-void cooccurVariables(AREA *object, INVARS *input, int inputnum, int nframes, int *missingframe)
+void cooccurVariables(AREA *object, int cooccurrence_levels, INVARS *input, int inputnum, int nframes, int *missingframe)
 {
   int k;
 
@@ -1438,21 +1448,21 @@ void cooccurVariables(AREA *object, INVARS *input, int inputnum, int nframes, in
   {
     if (missingframe[k] != 1)
     {
-      haralick(object[k].cooc01, object[k].lev0num, hf);
+      haralick(object[k].cooc01, cooccurrence_levels, object[k].lev0num, hf);
       input[inputnum].frame[k] = hf[0];
       input[inputnum+1].frame[k] = hf[1];
       input[inputnum+2].frame[k] = hf[2];
       input[inputnum+3].frame[k] = hf[3];
       input[inputnum+4].frame[k] = hf[4];
 
-      haralick(object[k].cooc12, object[k].lev1num, hf);
+      haralick(object[k].cooc12, cooccurrence_levels, object[k].lev1num, hf);
       input[inputnum+5].frame[k] = hf[0];
       input[inputnum+6].frame[k] = hf[1];
       input[inputnum+7].frame[k] = hf[2];
       input[inputnum+8].frame[k] = hf[3];
       input[inputnum+9].frame[k] = hf[4];
 
-      haralick(object[k].cooc02, object[k].lev0num, hf);
+      haralick(object[k].cooc02, cooccurrence_levels, object[k].lev0num, hf);
       input[inputnum+10].frame[k] = hf[0];
       input[inputnum+11].frame[k] = hf[1];
       input[inputnum+12].frame[k] = hf[2];
@@ -1607,16 +1617,16 @@ void summarystats(INVARS *input, int numinput, int nframes, int *missingframe)
 Procedure:    timeSeriesVars
 Description:  calculates variables from time series
 ******************************************************************************************/
-double timeSeriesVars(INVARS *input, int numinput, int nframes, int *missingframe)
+double timeSeriesVars(INVARS *input, int max_number_of_frames, int number_of_wavelet_levels, int numinput, int nframes, int *missingframe)
 {
   int j, k;
   double diff, areaoftraject;
   double minX, maxX, minY, maxY, area;
 
   double *wave = NULL;
-  wave = (double *) malloc ((NUMFRAMES) * sizeof(double));
+  wave = (double *) malloc ((max_number_of_frames) * sizeof(double));
   int *wl = NULL;
-  wl = (int *) malloc ((LEVELS + 1) * sizeof(int));
+  wl = (int *) malloc ((number_of_wavelet_levels + 1) * sizeof(int));
   
   /* calculate total ascent and descent */
   for (j = 0; j < numinput; j++)
@@ -1638,8 +1648,8 @@ double timeSeriesVars(INVARS *input, int numinput, int nframes, int *missingfram
   /* calculate wavelet detail coefficients */
   for (j = 0; j < numinput; j++)
   {
-    waveTran(input[j].frame, nframes, wave, wl);
-    for (k = 0; k < LEVELS; k++)
+    waveTran(input[j].frame, number_of_wavelet_levels, nframes, wave, wl);
+    for (k = 0; k < number_of_wavelet_levels; k++)
     {
       wavevars(wave, wl[k], wl[k+1], input[j].vars, k);
     }
@@ -1686,7 +1696,7 @@ double timeSeriesVars(INVARS *input, int numinput, int nframes, int *missingfram
 Procedure: writedata
 Description: write out all values for particular variables
 ************************************************************************************************************/
-void writedata(INVARS *input, int numinput, int nstats,  double areaoftraject,NAMES *vname, char *classlabel)
+void writedata(INVARS *input, int number_of_wavelet_levels, int numinput, int nstats,  double areaoftraject,NAMES *vname, char *classlabel)
 {
   int i, j, k;
   char varname[100];
@@ -1752,7 +1762,7 @@ void writedata(INVARS *input, int numinput, int nstats,  double areaoftraject,NA
     {
       if ((j != 9) || ((j == 9) && (k != 1))) fprintf(fp, "%f ", input[j].vars[k]);
     }
-    for (k = 6; k < 3*(LEVELS + 1); k++)
+    for (k = 6; k < 3*(number_of_wavelet_levels + 1); k++)
     {
       if ((j != 9) || ((j == 9) && (k % 3 != 1))) fprintf(fp, "%f ", input[j].vars[k]);
     }
