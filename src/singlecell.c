@@ -733,6 +733,8 @@ void polyClass(BOUND *boundary, INVARS *input, int inputnum, int nframes,
       input[inputnum + 3].frame[k] = vard - (meand * meand);
       free(xArray);
       free(yArray);
+      free(xPoints);
+      free(yPoints);
     } else {
       input[inputnum].frame[k] = -1;
       input[inputnum + 1].frame[k] = -1;
@@ -1428,6 +1430,8 @@ void cooccurVariables(AREA *object, int cooccurrence_levels, INVARS *input,
       input[inputnum + 14].frame[k] = -1.0;
     }
   }
+
+  free(hf);
 }
 
 /*****************************************************************************
@@ -1697,6 +1701,9 @@ void writedata(INVARS *input, int number_of_wavelet_levels, int numinput,
     }
   }
   fprintf(fp, "\n");
-
+  
+  free(stat);
+  free(lev);
+  free(str);
   fclose(fp);
 }
