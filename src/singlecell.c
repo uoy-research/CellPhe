@@ -43,7 +43,10 @@ int extract(const char *input_file_prefix, const char *class_label,
             int maximum_cell_area, int cooccurrence_levels,
             int number_of_wavelet_levels);
 
-int main(int argc, char **argv) { exit(EXIT_SUCCESS); }
+int main(int argc, char **argv) {
+  extract("cell56", "treated", 128, 108, 1500, 10, 4);
+  exit(EXIT_SUCCESS);
+}
 
 /* int main (int argc, char *argv[]) */
 int extract(const char *input_file_prefix, const char *class_label,
@@ -1435,17 +1438,21 @@ void interpolate(INVARS *input, int numinput, int nframes, int *missingframe) {
   int j, k, r, m;
   double value;
 
-  for (k = 0; k < nframes; k++) {
+  for (k = 1; k < nframes; k++) {
     r = 0;
     if (missingframe[k] == 1) {
       r = 1;
       while (missingframe[k + r] == 1)
         r++;
     }
-    for (j = 0; j < numinput; j++) {
-      value = (input[j].frame[k + r] - input[j].frame[k - 1]) / (float)(r + 1);
-      for (m = 0; m < r; m++) {
-        input[j].frame[k + m] = input[j].frame[k - 1] + (m + 1) * value;
+
+    if (r > 0) {
+      for (j = 0; j < numinput; j++) {
+        value =
+            (input[j].frame[k + r] - input[j].frame[k - 1]) / (float)(r + 1);
+        for (m = 0; m < r; m++) {
+          input[j].frame[k + m] = input[j].frame[k - 1] + (m + 1) * value;
+        }
       }
     }
   }
