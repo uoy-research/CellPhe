@@ -485,7 +485,7 @@ void curvature(BOUND *boundary, INVARS *input, int inputnum, int nframes,
   int j, k, x, y, n, xmgap, ymgap, xpgap, ypgap;
   int i1, i2, i3;
   double d1, d2, d3;
-  double curv, new;
+  double curv, newval;
   int gap = 4;
 
   for (k = 0; k < nframes; k++) {
@@ -506,8 +506,8 @@ void curvature(BOUND *boundary, INVARS *input, int inputnum, int nframes,
         d1 = sqrt((float)i1);
         d2 = sqrt((float)i2);
         d3 = sqrt((float)i3);
-        new = d1 + d2 - d3;
-        curv = curv + new;
+        newval = d1 + d2 - d3;
+        curv = curv + newval;
       }
       input[inputnum].frame[k] = curv / (float)n;
     } else
@@ -1701,7 +1701,7 @@ void writedata(INVARS *input, int number_of_wavelet_levels, int numinput,
     }
   }
   fprintf(fp, "\n");
-  
+
   free(stat);
   free(lev);
   free(str);
