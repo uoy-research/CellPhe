@@ -3,17 +3,6 @@
 
 #define PI 3.14159265
 
-#define NUMFRAMES 128
-/* maximum boundary length */
-#define MAXB 108
-/* maximum number of pixels within cell (area) */
-#define MAXA 930
-
-/* number of levels (bins) for co-occurrence values */
-#define NCOOC 10
-/* number of wavelet levels */
-#define LEVELS 4
-
 typedef struct varnames {
   char var[100];
 } NAMES;

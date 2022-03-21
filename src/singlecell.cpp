@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <Rcpp.h>
+
 int readLine(FILE *fp);
 void cooccur(AREA *object, int cooccurrence_levels, int nframes,
              int *missingframe);
@@ -37,19 +39,27 @@ void haralick(double *cooc, int cooccurrence_levels, int num, double *hf);
 void writedata(INVARS *input, int number_of_wavelet_levels, int numinput,
                int nstats, double areaoftraject, NAMES *vname,
                char *classlabel);
-
-int extract(const char *input_file_prefix, const char *class_label,
+/*int extract(const char *input_file_prefix, const char *class_label,
             int max_number_of_frames, int maximum_boundary_length,
             int maximum_cell_area, int cooccurrence_levels,
-            int number_of_wavelet_levels);
+            int number_of_wavelet_levels); */
+// [[Rcpp::export]]
+int extract(const std::string input_file_prefix, const std::string class_label,
+            int max_number_of_frames, int maximum_boundary_length,
+            int maximum_cell_area, int cooccurrence_levels,
+            int number_of_wavelet_levels); 
 
-int main(int argc, char **argv) {
+/* int main(int argc, char **argv) {
   extract("cell56", "treated", 128, 108, 1500, 10, 4);
   exit(EXIT_SUCCESS);
-}
+} */
 
 /* int main (int argc, char *argv[]) */
-int extract(const char *input_file_prefix, const char *class_label,
+/*int extract(const char *input_file_prefix, const char *class_label,
+            int max_number_of_frames, int maximum_boundary_length,
+            int maximum_cell_area, int cooccurrence_levels,
+            int number_of_wavelet_levels) {*/
+int extract(const std::string input_file_prefix, const std::string class_label,
             int max_number_of_frames, int maximum_boundary_length,
             int maximum_cell_area, int cooccurrence_levels,
             int number_of_wavelet_levels) {
@@ -73,14 +83,14 @@ int extract(const char *input_file_prefix, const char *class_label,
   char classlabel[100];
 
   /* if (argc != 3) printf("correct usage: ./cellphe cellnum classlabel\n"); */
-  strcpy(ftfile, input_file_prefix);
+  strcpy(ftfile, input_file_prefix.c_str());
   strcat(ftfile, "_ft.txt\0");
-  strcpy(bfile, input_file_prefix);
+  strcpy(bfile, input_file_prefix.c_str());
   strcat(bfile, "_b.txt\0");
-  strcpy(imfile, input_file_prefix);
+  strcpy(imfile, input_file_prefix.c_str());
   strcat(imfile, "_im.txt\0");
 
-  strcpy(classlabel, class_label);
+  strcpy(classlabel, class_label.c_str());
 
   int *missingframe = NULL;
   missingframe = (int *)malloc(max_number_of_frames * sizeof(int));
