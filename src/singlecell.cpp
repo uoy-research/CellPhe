@@ -96,7 +96,8 @@ void haralick(double *cooc, int cooccurrence_levels, int num, double *hf);
 void writedata(INVARS *input, int number_of_wavelet_levels, int numinput,
                int nstats, double areaoftraject, NAMES *vname,
                char *classlabel);
-std::vector<std::string> create_column_labels(NAMES *vname);
+std::vector<std::string> create_column_labels(NAMES *vname,
+                                              int number_of_variables);
 // [[Rcpp::export]]
 int extract(const std::string input_file_prefix, const std::string class_label,
             int max_number_of_frames, int maximum_boundary_length,
@@ -356,13 +357,46 @@ int extract(const std::string input_file_prefix, const std::string class_label,
       timeSeriesVars(input, max_number_of_frames, number_of_wavelet_levels,
                      numinput, nframes, missingframe);
 
-  std::vector<std::string> column_labels = create_column_labels(vname);
+  std::vector<std::string> column_labels =
+      create_column_labels(vname, (numinput - 2));
 
-  std::cout << "column_labels size: " << column_labels.size() << std::endl;
+  std::cout << "BEGIN" << std::endl;
+
   for (const auto &column_label : column_labels) {
     std::cout << column_label << ' ';
   }
   std::cout << std::endl;
+
+  std::vector<float> wavelet_values;
+  std::vector<float> statistics_values;
+
+  for (int index = 2; index < numinput; ++index) {
+    std::vector<float> temp_wavelet_values(
+        input[index].vars,
+        input[index].vars + ((number_of_wavelet_levels + 1) * 3));
+    temp_wavelet_values.erase(temp_wavelet_values.begin() + 3,
+                              temp_wavelet_values.begin() + 6);
+    wavelet_values.insert(wavelet_values.end(), temp_wavelet_values.begin(),
+                          temp_wavelet_values.end());
+
+    std::vector<float> temp_stats_values(input[index].stats,
+                                         input[index].stats + 3);
+    statistics_values.insert(statistics_values.end(), temp_stats_values.begin(),
+                             temp_stats_values.end());
+  }
+
+  std::cout << classlabel << ' ';
+  std::cout << std::setprecision(5) << areaoftraject << ' ';
+
+  for (const auto &wavelet_value : wavelet_values) {
+    std::cout << std::setprecision(5) << wavelet_value << ' ';
+  }
+
+  for (const auto &statistics_value : statistics_values) {
+    std::cout << std::setprecision(5) << statistics_value << ' ';
+  }
+  std::cout << std::endl;
+  std::cout << "END" << std::endl;
 
   writedata(input, number_of_wavelet_levels, numinput, nstats, areaoftraject,
             vname, classlabel);
@@ -413,57 +447,59 @@ int extract(const std::string input_file_prefix, const std::string class_label,
  *              transform. Subtraction of 4 from the total is to account for
  *              removal of 'descent' of TrackLength.
  *----------------------------------------------------------------------------*/
-std::vector<std::string> create_column_labels(NAMES *vname) {
+std::vector<std::string> create_column_labels(NAMES *vname,
+                                              int number_of_variables) {
   std::vector<std::string> variable_names;
   std::vector<std::string> column_labels = {"class", "trajarea"};
   std::vector<std::string> wavelet_columns;
   std::vector<std::string> statistics_columns;
 
-  for (int index = 2; index < (sizeof(vname) / sizeof(vname[0])); ++index) {
+  for (int index = 2; index < (number_of_variables + 2); ++index) {
     std::cout << vname[index].var << std::endl;
     variable_names.push_back(std::string(vname[index].var));
   }
 
-  for (const auto& variable_name: variable_names) {
+  for (const auto &variable_name : variable_names) {
     std::cout << variable_name << ' ';
   }
   std::cout << std::endl;
 
   std::vector<std::string> wavelet_suffixes = {"_asc", "_des", "max"};
   std::vector<std::string> wavelet_levels = {"_l0", "_l1", "_l2", "_l3"};
-  
-  for (const auto& variable_name: variable_names) {
+
+  for (const auto &variable_name : variable_names) {
     for (const auto &wavelet_level : wavelet_levels) {
       for (const auto &wavelet_suffix : wavelet_suffixes) {
-        if (variable_name == "Trac" && wavelet_suffix == "_des")
-          continue;
-
+        //        if (variable_name == "Trac" && wavelet_suffix == "_des")
+        //          continue;
         wavelet_columns.push_back(variable_name + wavelet_suffix +
                                   wavelet_level);
       }
     }
   }
 
-  for (const auto& wavelet_column: wavelet_columns) {
+  for (const auto &wavelet_column : wavelet_columns) {
     std::cout << wavelet_column << ' ';
   }
   std::cout << std::endl;
 
   std::vector<std::string> statistic_suffixes = {"_mean", "_std", "_skew"};
-  
-  for (const auto& variable_name: variable_names) {
+
+  for (const auto &variable_name : variable_names) {
     for (const auto &statistic_suffix : statistic_suffixes) {
       statistics_columns.push_back(variable_name + statistic_suffix);
     }
   }
 
-  for (const auto& statistics_column: statistics_columns) {
+  for (const auto &statistics_column : statistics_columns) {
     std::cout << statistics_column << ' ';
   }
   std::cout << std::endl;
-  
-  wavelet_columns.insert(wavelet_columns.end(), statistics_columns.begin(), statistics_columns.end());
-  column_labels.insert(column_labels.end(), wavelet_columns.begin(), wavelet_columns.end());
+
+  wavelet_columns.insert(wavelet_columns.end(), statistics_columns.begin(),
+                         statistics_columns.end());
+  column_labels.insert(column_labels.end(), wavelet_columns.begin(),
+                       wavelet_columns.end());
 
   return column_labels;
 }
