@@ -1,4 +1,13 @@
-#include "constants.h"
+/*******************************************************************************
+ * FILE:        singlecell.cpp
+ * AUTHOR:      Julie Wilson <julie.wilson@york.ac.uk>
+ * AUTHOR:      Killian Murphy <killian.murphy@york.ac.uk>
+ * DESCRIPTION: TODO
+ ******************************************************************************/
+
+/*******************************************************************************
+ * HEADERS
+ ******************************************************************************/
 #include <ctype.h>
 #include <math.h>
 #include <stdio.h>
@@ -6,7 +15,55 @@
 #include <string.h>
 
 #include <Rcpp.h>
+/*******************************************************************************
+ * MACROS
+ ******************************************************************************/
+#define PI 3.14159265
+/*******************************************************************************
+ * TYPEDEFS
+ ******************************************************************************/
+typedef struct varnames {
+  char var[100];
+} NAMES;
 
+typedef struct inputvars {
+  double *frame;
+  double *stats;
+  double *vars;
+} INVARS;
+
+typedef struct bpix {
+  int *xpix;
+  int *ypix;
+  int blength;
+  int xlim1;
+  int xlim2;
+  int ylim1;
+  int ylim2;
+} BOUND;
+
+typedef struct apix {
+  int *xpix;
+  int *ypix;
+  int *intensity;
+  int npix;
+  int width;
+  int height;
+  int *image;
+  int *mask;
+  int lev0num;
+  int lev1num;
+  int lev2num;
+  double *lev0Pix;
+  double *lev1Pix;
+  double *lev2Pix;
+  double *cooc01;
+  double *cooc12;
+  double *cooc02;
+} AREA;
+/*******************************************************************************
+ * FUNCTION DECLARATIONS
+ ******************************************************************************/
 int readLine(FILE *fp);
 void cooccur(AREA *object, int cooccurrence_levels, int nframes,
              int *missingframe);
@@ -39,26 +96,15 @@ void haralick(double *cooc, int cooccurrence_levels, int num, double *hf);
 void writedata(INVARS *input, int number_of_wavelet_levels, int numinput,
                int nstats, double areaoftraject, NAMES *vname,
                char *classlabel);
-/*int extract(const char *input_file_prefix, const char *class_label,
-            int max_number_of_frames, int maximum_boundary_length,
-            int maximum_cell_area, int cooccurrence_levels,
-            int number_of_wavelet_levels); */
+std::vector<std::string> create_column_labels(NAMES *vname);
 // [[Rcpp::export]]
 int extract(const std::string input_file_prefix, const std::string class_label,
             int max_number_of_frames, int maximum_boundary_length,
             int maximum_cell_area, int cooccurrence_levels,
-            int number_of_wavelet_levels); 
-
-/* int main(int argc, char **argv) {
-  extract("cell56", "treated", 128, 108, 1500, 10, 4);
-  exit(EXIT_SUCCESS);
-} */
-
-/* int main (int argc, char *argv[]) */
-/*int extract(const char *input_file_prefix, const char *class_label,
-            int max_number_of_frames, int maximum_boundary_length,
-            int maximum_cell_area, int cooccurrence_levels,
-            int number_of_wavelet_levels) {*/
+            int number_of_wavelet_levels);
+/*******************************************************************************
+ * FUNCTION DEFINITIONS
+ ******************************************************************************/
 int extract(const std::string input_file_prefix, const std::string class_label,
             int max_number_of_frames, int maximum_boundary_length,
             int maximum_cell_area, int cooccurrence_levels,
@@ -82,7 +128,6 @@ int extract(const std::string input_file_prefix, const std::string class_label,
   char ch;
   char classlabel[100];
 
-  /* if (argc != 3) printf("correct usage: ./cellphe cellnum classlabel\n"); */
   strcpy(ftfile, input_file_prefix.c_str());
   strcat(ftfile, "_ft.txt\0");
   strcpy(bfile, input_file_prefix.c_str());
@@ -310,6 +355,15 @@ int extract(const std::string input_file_prefix, const std::string class_label,
   areaoftraject =
       timeSeriesVars(input, max_number_of_frames, number_of_wavelet_levels,
                      numinput, nframes, missingframe);
+
+  std::vector<std::string> column_labels = create_column_labels(vname);
+
+  std::cout << "column_labels size: " << column_labels.size() << std::endl;
+  for (const auto &column_label : column_labels) {
+    std::cout << column_label << ' ';
+  }
+  std::cout << std::endl;
+
   writedata(input, number_of_wavelet_levels, numinput, nstats, areaoftraject,
             vname, classlabel);
 
@@ -348,10 +402,75 @@ int extract(const std::string input_file_prefix, const std::string class_label,
   return 0;
 }
 
-/*****************************************************
-Procedure: readLine
-Description: reads past a line
-******************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:   create_column_labels
+ * Description: Create a vector of column labels for returning a data.frame of
+ *              results to R.
+ *
+ *              Subtraction of 2 from numinputs is to match the way in which the
+ *              vname data is currently stored. Addition of 1 to
+ *              number_of_wavelet_levels is to account for level 0 of the
+ *              transform. Subtraction of 4 from the total is to account for
+ *              removal of 'descent' of TrackLength.
+ *----------------------------------------------------------------------------*/
+std::vector<std::string> create_column_labels(NAMES *vname) {
+  std::vector<std::string> variable_names;
+  std::vector<std::string> column_labels = {"class", "trajarea"};
+  std::vector<std::string> wavelet_columns;
+  std::vector<std::string> statistics_columns;
+
+  for (int index = 2; index < (sizeof(vname) / sizeof(vname[0])); ++index) {
+    std::cout << vname[index].var << std::endl;
+    variable_names.push_back(std::string(vname[index].var));
+  }
+
+  for (const auto& variable_name: variable_names) {
+    std::cout << variable_name << ' ';
+  }
+  std::cout << std::endl;
+
+  std::vector<std::string> wavelet_suffixes = {"_asc", "_des", "max"};
+  std::vector<std::string> wavelet_levels = {"_l0", "_l1", "_l2", "_l3"};
+  
+  for (const auto& variable_name: variable_names) {
+    for (const auto &wavelet_level : wavelet_levels) {
+      for (const auto &wavelet_suffix : wavelet_suffixes) {
+        if (variable_name == "Trac" && wavelet_suffix == "_des")
+          continue;
+
+        wavelet_columns.push_back(variable_name + wavelet_suffix +
+                                  wavelet_level);
+      }
+    }
+  }
+
+  for (const auto& wavelet_column: wavelet_columns) {
+    std::cout << wavelet_column << ' ';
+  }
+  std::cout << std::endl;
+
+  std::vector<std::string> statistic_suffixes = {"_mean", "_std", "_skew"};
+  
+  for (const auto& variable_name: variable_names) {
+    for (const auto &statistic_suffix : statistic_suffixes) {
+      statistics_columns.push_back(variable_name + statistic_suffix);
+    }
+  }
+
+  for (const auto& statistics_column: statistics_columns) {
+    std::cout << statistics_column << ' ';
+  }
+  std::cout << std::endl;
+  
+  wavelet_columns.insert(wavelet_columns.end(), statistics_columns.begin(), statistics_columns.end());
+  column_labels.insert(column_labels.end(), wavelet_columns.begin(), wavelet_columns.end());
+
+  return column_labels;
+}
+/*------------------------------------------------------------------------------
+ * Procedure: readLine
+ * Description: reads past a line
+ *----------------------------------------------------------------------------*/
 int readLine(FILE *fp) {
   int ch;
 
@@ -364,10 +483,10 @@ int readLine(FILE *fp) {
   return ch;
 }
 
-/**********************************************************************************************
- Procedure:  minBox
- Description:    calculates minimal rectangular box that the cell will fit in
-***********************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  minBox
+ * Description:    calculates minimal rectangular box that the cell will fit in
+ *----------------------------------------------------------------------------*/
 void minBox(BOUND *boundary, INVARS *input, int inputnum, int nframes,
             int *missingframe) {
   int j, k, l;
@@ -437,10 +556,10 @@ void minBox(BOUND *boundary, INVARS *input, int inputnum, int nframes,
   }
 }
 
-/**********************************************************************************************
- Procedure:  getVar
- Description: calcultes the variance/mean of an array
-************************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  getVar
+ * Description: calcultes the variance/mean of an array
+ *----------------------------------------------------------------------------*/
 double getVar(double *array, int num) {
   int i;
   double var, sum1, sum2, fnum;
@@ -459,10 +578,10 @@ double getVar(double *array, int num) {
   return (var);
 }
 
-/**********************************************************************************************
- Procedure:  varFromCentre
- Description:    finds variance of the didtance from the boundary to the centre
-***********************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  varFromCentre
+ * Description: finds variance of the didtance from the boundary to the centre
+ *----------------------------------------------------------------------------*/
 void varFromCentre(BOUND *boundary, INVARS *input, int maximum_boundary_length,
                    int inputnum, int nframes, int *missingframe) {
   int j, k, x, y, icx, icy;
@@ -486,10 +605,10 @@ void varFromCentre(BOUND *boundary, INVARS *input, int maximum_boundary_length,
   free(dist);
 }
 
-/*****************************************************************************
-Procedure:  curvature
-Description:    calculates the curvature of the boundary
-******************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  curvature
+ * Description:    calculates the curvature of the boundary
+ *----------------------------------------------------------------------------*/
 void curvature(BOUND *boundary, INVARS *input, int inputnum, int nframes,
                int *missingframe) {
   int j, k, x, y, n, xmgap, ymgap, xpgap, ypgap;
@@ -525,10 +644,10 @@ void curvature(BOUND *boundary, INVARS *input, int inputnum, int nframes,
   }
 }
 
-/*****************************************************************************
- Procedure:  atob
- Description:    calculates the ratio of the area to the boundary squared
- *******************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  atob
+ * Description:    calculates the ratio of the area to the boundary squared
+ *----------------------------------------------------------------------------*/
 void atob(BOUND *boundary, INVARS *input, int inputnum, int nframes,
           int *missingframe) {
   int k;
@@ -543,10 +662,10 @@ void atob(BOUND *boundary, INVARS *input, int inputnum, int nframes,
   }
 }
 
-/*****************************************************************************
-Procedure: pointttolinedist
-Description:  calculates the distance between the point (x0, y0) and the line
-*******************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure: pointttolinedist
+ * Description:  calculates the distance between the point (x0, y0) and the line
+ *----------------------------------------------------------------------------*/
 double pointttolinedist(int x0, int y0, int x1, int y1, int x2, int y2) {
   double fnum, fden, dist;
   int numer, denom;
@@ -560,12 +679,12 @@ double pointttolinedist(int x0, int y0, int x1, int y1, int x2, int y2) {
   return (dist);
 }
 
-/*******************************************************************************************************
-Procedure: polygon
-Description: extracts a set of points from the cell boundary (xArray and yArray)
-that form a polygon
-where the sides are within thresh of the boundary
-*********************************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure: polygon
+ * Description: extracts a set of points from the cell boundary (xArray and
+ *              yArray) that form a polygon where the sides are within thresh
+ *              of the boundary
+ *----------------------------------------------------------------------------*/
 void polygon(int *xArray, int *yArray, int num, double thresh, int *xPoints,
              int *yPoints, int *nPoints) {
   int k, i, xs, ys, x, y, numpoints, indkeep, n;
@@ -667,10 +786,10 @@ void polygon(int *xArray, int *yArray, int num, double thresh, int *xPoints,
   free(done);
 }
 
-/******************************************************************************************
-Procedure: polyclass
-Description:  calculates variables from the polygonal estimates of the cells
-********************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure: polyclass
+ * Description:  calculates variables from the polygonal estimates of the cells
+ *----------------------------------------------------------------------------*/
 void polyClass(BOUND *boundary, INVARS *input, int inputnum, int nframes,
                int *missingframe) {
   int j, k, x0, y0, x1, y1, x2, y2, num;
@@ -754,10 +873,10 @@ void polyClass(BOUND *boundary, INVARS *input, int inputnum, int nframes,
   }
 }
 
-/****************************************************************
-Procedure:  fSort
-Description:    Sorts an array of integers into increasing order
-****************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  fSort
+ * Description:    Sorts an array of integers into increasing order
+ *----------------------------------------------------------------------------*/
 void intSort(int *array, int nRef) {
   int nInt, ii, i, j, nf;
   int tf;
@@ -786,10 +905,10 @@ void intSort(int *array, int nRef) {
   } while (nInt > 1);
 }
 
-/**********************************************************************************************
-Procedure:  textureVariables
-Description:
-************************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  textureVariables
+ * Description:
+ *----------------------------------------------------------------------------*/
 void textureVariables(AREA *object, BOUND *boundary, INVARS *input,
                       int inputnum, int nframes, int *missingframe) {
   int width, height, c, k, a, term1, term2;
@@ -885,10 +1004,10 @@ void textureVariables(AREA *object, BOUND *boundary, INVARS *input,
   }
 }
 
-/***************************************************************************
-Procedure: FOstats
-Description: calculates mean, stdev and skewness from an array of values
-****************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure: FOstats
+ * Description: calculates mean, stdev and skewness from an array of values
+ *----------------------------------------------------------------------------*/
 void FOstats(double *array, int num, double *stats) {
   int j;
   double m1, m2, m3, en, enm1, enm2;
@@ -923,11 +1042,11 @@ void FOstats(double *array, int num, double *stats) {
     stats[2] = (m3 * en * sqrt(enm1)) / (enm2 * m2 * sqrt(m2));
 }
 
-/***************************************************************************************************
-Procedure:  firstOrderOriginal
-Description: Extracts first order features from pixel intensity histogram of
-each cell in each frame
-*****************************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  firstOrderOriginal
+ * Description: Extracts first order features from pixel intensity histogram of
+ *              each cell in each frame
+ *----------------------------------------------------------------------------*/
 void firstOrderOriginal(AREA *object, INVARS *input, int maximum_cell_area,
                         int inputnum, int nframes, int *missingframe) {
   int c, k;
@@ -959,11 +1078,11 @@ void firstOrderOriginal(AREA *object, INVARS *input, int maximum_cell_area,
   free(array);
 }
 
-/*************************************************************************************************************
-Procedure:  reScale
-Description: real-valued input values are re-scaled to have a minimum equal to 0
-and a maximum equal to 255
-************************************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  reScale
+ * Description: real-valued input values are re-scaled to have a minimum equal
+ *              to 0 and a maximum equal to 255
+ *----------------------------------------------------------------------------*/
 void reScale(int num, double *inputArray, int *mask) {
   int ind;
   double max, min, scale;
@@ -994,10 +1113,10 @@ void reScale(int num, double *inputArray, int *mask) {
   }
 }
 
-/*********************************************************************************************
-Procedure:  getCoocMatrix
-Description: creates co-occurrence matrices images on two levels
-***********************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  getCoocMatrix
+ * Description: creates co-occurrence matrices images on two levels
+ *----------------------------------------------------------------------------*/
 void getCoocMatrix(double *cooc, int cooccurrence_levels, double *bigimage,
                    int *bigmask, double *smallimage, int *smallmask, int w,
                    int h, int numlevs) {
@@ -1033,11 +1152,10 @@ void getCoocMatrix(double *cooc, int cooccurrence_levels, double *bigimage,
   }
 }
 
-/*****************************************************************************************
-Procedure:    code for Daubechies' 2-coefficient (Haar) wavelet from Numerical
-Recipes
-
-******************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure: code for Daubechies' 2-coefficient (Haar) wavelet from Numerical
+ *            Recipes
+ *----------------------------------------------------------------------------*/
 void daub2(double *a, int n, int isign) {
   double *wksp = NULL;
   int nh, i, j;
@@ -1070,10 +1188,10 @@ void daub2(double *a, int n, int isign) {
   free(wksp);
 }
 
-/*****************************************************************************************
-Procedure:    wavelet transform
-Description:  performs 3-level wavelet transform
-******************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:    wavelet transform
+ * Description:  performs 3-level wavelet transform
+ *----------------------------------------------------------------------------*/
 void waveTran(double *inputArray, int number_of_wavelet_levels, int arraynum,
               double *outputArray, int *detlength) {
   int x, k, length;
@@ -1120,10 +1238,10 @@ void waveTran(double *inputArray, int number_of_wavelet_levels, int arraynum,
   free(xVector);
 }
 
-/***********************************************************************************************
-Procedure:	1-level 2D wavelet transform
-Description:    does 1-level x and y wavelet transform
-************************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:	1-level 2D wavelet transform
+ * Description:    does 1-level x and y wavelet transform
+ *----------------------------------------------------------------------------*/
 void waveTran2D(int width, int height, double *inputImage, double *levImage) {
   int x, y, ind, yind, jnd;
   int xLength = width;
@@ -1177,11 +1295,12 @@ void waveTran2D(int width, int height, double *inputImage, double *levImage) {
   free(tempImage);
 }
 
-/*************************************************************************************
-Procedure:  shrinkmask
-Description: produces a mask at a particular level from the one at the previous
-level new mask is only 0 if all 4 pixels in previous level are 0
-***************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  shrinkmask
+ * Description: produces a mask at a particular level from the one at the
+ *              previous level new mask is only 0 if all 4 pixels in previous
+ *              level are 0
+ *----------------------------------------------------------------------------*/
 void shrinkmask(int width, int height, int *mask, int *newmask) {
   int i, j, inds, x, y, indb, n;
 
@@ -1203,10 +1322,10 @@ void shrinkmask(int width, int height, int *mask, int *newmask) {
   }
 }
 
-/***************************************************************************************
- Procedure:  coocur
- Description:
-*****************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  coocur
+ * Description:
+ *----------------------------------------------------------------------------*/
 void cooccur(AREA *object, int cooccurrence_levels, int nframes,
              int *missingframe) {
   int j, k, x, y, ind, jnd;
@@ -1323,10 +1442,10 @@ void cooccur(AREA *object, int cooccurrence_levels, int nframes,
   }
 }
 
-/*****************************************************************************
-Procedure:  haralick
-Description: calculates Haralick features from a co-occurrence matrix
-*******************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  haralick
+ * Description: calculates Haralick features from a co-occurrence matrix
+ *----------------------------------------------------------------------------*/
 void haralick(double *cooc, int cooccurrence_levels, int num, double *hf) {
   int a, b, c;
   double energy = 0.0;
@@ -1388,11 +1507,11 @@ void haralick(double *cooc, int cooccurrence_levels, int num, double *hf) {
   hf[4] = entropy;
 }
 
-/************************************************************************************************
-Procedure:  cooccurVariables
-Description: extract Haralick features from co-occurrence matrices between
-different wavelet levels
-***************************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  cooccurVariables
+ * Description: extract Haralick features from co-occurrence matrices between
+ *              different wavelet levels
+ *----------------------------------------------------------------------------*/
 void cooccurVariables(AREA *object, int cooccurrence_levels, INVARS *input,
                       int inputnum, int nframes, int *missingframe) {
   int k;
@@ -1444,10 +1563,10 @@ void cooccurVariables(AREA *object, int cooccurrence_levels, INVARS *input,
   free(hf);
 }
 
-/*****************************************************************************
-Procedure:  interpolate
-Description:  gives values to missing frames by interpolation
-******************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:  interpolate
+ * Description:  gives values to missing frames by interpolation
+ *----------------------------------------------------------------------------*/
 void interpolate(INVARS *input, int numinput, int nframes, int *missingframe) {
   int j, k, r, m;
   double value;
@@ -1472,10 +1591,10 @@ void interpolate(INVARS *input, int numinput, int nframes, int *missingframe) {
   }
 }
 
-/*****************************************************************************************
-Procedure:    wavevars
-Description:  calculate variables from wavelet coefficients
-******************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:    wavevars
+ * Description:  calculate variables from wavelet coefficients
+ *----------------------------------------------------------------------------*/
 void wavevars(double *inputArray, int start, int end, double *vars, int lev) {
   int k, n;
   int length = end - start;
@@ -1510,10 +1629,10 @@ void wavevars(double *inputArray, int start, int end, double *vars, int lev) {
   free(tempArray);
 }
 
-/*****************************************************************************
-Procedure: summarystats
-Description: calculates various stats from cell variables
-******************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure: summarystats
+ * Description: calculates various stats from cell variables
+ *----------------------------------------------------------------------------*/
 void summarystats(INVARS *input, int numinput, int nframes, int *missingframe) {
   int j, k, nummissing, notmissing;
   double m1, m2, m3, en, enm1, enm2;
@@ -1561,10 +1680,10 @@ void summarystats(INVARS *input, int numinput, int nframes, int *missingframe) {
   }
 }
 
-/*****************************************************************************************
-Procedure:    timeSeriesVars
-Description:  calculates variables from time series
-******************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure:    timeSeriesVars
+ * Description:  calculates variables from time series
+ *----------------------------------------------------------------------------*/
 double timeSeriesVars(INVARS *input, int max_number_of_frames,
                       int number_of_wavelet_levels, int numinput, int nframes,
                       int *missingframe) {
@@ -1634,10 +1753,10 @@ double timeSeriesVars(INVARS *input, int max_number_of_frames,
   return (areaoftraject);
 }
 
-/************************************************************************************************************
-Procedure: writedata
-Description: write out all values for particular variables
-************************************************************************************************************/
+/*------------------------------------------------------------------------------
+ * Procedure: writedata
+ * Description: write out all values for particular variables
+ *----------------------------------------------------------------------------*/
 void writedata(INVARS *input, int number_of_wavelet_levels, int numinput,
                int nstats, double areaoftraject, NAMES *vname,
                char *classlabel) {
