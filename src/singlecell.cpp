@@ -99,17 +99,17 @@ void writedata(INVARS *input, int number_of_wavelet_levels, int numinput,
 std::vector<std::string> create_column_labels(NAMES *vname,
                                               int number_of_variables);
 // [[Rcpp::export]]
-int extract(const std::string input_file_prefix, const std::string class_label,
-            int max_number_of_frames, int maximum_boundary_length,
-            int maximum_cell_area, int cooccurrence_levels,
-            int number_of_wavelet_levels);
+Rcpp::DataFrame extract(const std::string input_file_prefix,
+                        const std::string class_label, int max_number_of_frames,
+                        int maximum_boundary_length, int maximum_cell_area,
+                        int cooccurrence_levels, int number_of_wavelet_levels);
 /*******************************************************************************
  * FUNCTION DEFINITIONS
  ******************************************************************************/
-int extract(const std::string input_file_prefix, const std::string class_label,
-            int max_number_of_frames, int maximum_boundary_length,
-            int maximum_cell_area, int cooccurrence_levels,
-            int number_of_wavelet_levels) {
+Rcpp::DataFrame extract(const std::string input_file_prefix,
+                        const std::string class_label, int max_number_of_frames,
+                        int maximum_boundary_length, int maximum_cell_area,
+                        int cooccurrence_levels, int number_of_wavelet_levels) {
   int j, k, ind, ix, iy, xpix, ypix, numvars, nframes, framenum;
   int tmp, dtmp, dtmp1, dtmp2, dtmp3, dtmp4;
   float X, Y, Volume, Thickness, Radius, Area, Sphericity, Vel1, Vel2;
@@ -360,18 +360,11 @@ int extract(const std::string input_file_prefix, const std::string class_label,
   std::vector<std::string> column_labels =
       create_column_labels(vname, (numinput - 2));
 
-  std::cout << "BEGIN" << std::endl;
-
-  for (const auto &column_label : column_labels) {
-    std::cout << column_label << ' ';
-  }
-  std::cout << std::endl;
-
-  std::vector<float> wavelet_values;
-  std::vector<float> statistics_values;
+  std::vector<double> wavelet_values;
+  std::vector<double> statistics_values;
 
   for (int index = 2; index < numinput; ++index) {
-    std::vector<float> temp_wavelet_values(
+    std::vector<double> temp_wavelet_values(
         input[index].vars,
         input[index].vars + ((number_of_wavelet_levels + 1) * 3));
     temp_wavelet_values.erase(temp_wavelet_values.begin() + 3,
@@ -379,27 +372,31 @@ int extract(const std::string input_file_prefix, const std::string class_label,
     wavelet_values.insert(wavelet_values.end(), temp_wavelet_values.begin(),
                           temp_wavelet_values.end());
 
-    std::vector<float> temp_stats_values(input[index].stats,
-                                         input[index].stats + 3);
+    std::vector<double> temp_stats_values(input[index].stats,
+                                          input[index].stats + 3);
     statistics_values.insert(statistics_values.end(), temp_stats_values.begin(),
                              temp_stats_values.end());
   }
 
-  std::cout << classlabel << ' ';
-  std::cout << std::setprecision(5) << areaoftraject << ' ';
+  std::vector<double> combined_values;
+  wavelet_values.insert(wavelet_values.end(), statistics_values.begin(),
+                        statistics_values.end());
+  combined_values.insert(combined_values.end(), wavelet_values.begin(),
+                         wavelet_values.end());
 
-  for (const auto &wavelet_value : wavelet_values) {
-    std::cout << std::setprecision(5) << wavelet_value << ' ';
+  Rcpp::DataFrame results;
+
+  results[column_labels[0]] = Rcpp::CharacterVector::create(classlabel);
+  results[column_labels[1]] = Rcpp::NumericVector::create(areaoftraject);
+
+  for (int index = 2; index < column_labels.size(); ++index) {
+    results[column_labels[index]] =
+        Rcpp::NumericVector::create(combined_values[index - 2]);
   }
 
-  for (const auto &statistics_value : statistics_values) {
-    std::cout << std::setprecision(5) << statistics_value << ' ';
+  for (int index = 0; index < (number_of_wavelet_levels); ++index) {
+    results.erase(results.findName("Trac_l" + std::to_string(index) + "_des"));
   }
-  std::cout << std::endl;
-  std::cout << "END" << std::endl;
-
-  writedata(input, number_of_wavelet_levels, numinput, nstats, areaoftraject,
-            vname, classlabel);
 
   free(missingframe);
 
@@ -433,7 +430,7 @@ int extract(const std::string input_file_prefix, const std::string class_label,
 
   free(vname);
 
-  return 0;
+  return results;
 }
 
 /*------------------------------------------------------------------------------
@@ -455,16 +452,10 @@ std::vector<std::string> create_column_labels(NAMES *vname,
   std::vector<std::string> statistics_columns;
 
   for (int index = 2; index < (number_of_variables + 2); ++index) {
-    std::cout << vname[index].var << std::endl;
     variable_names.push_back(std::string(vname[index].var));
   }
 
-  for (const auto &variable_name : variable_names) {
-    std::cout << variable_name << ' ';
-  }
-  std::cout << std::endl;
-
-  std::vector<std::string> wavelet_suffixes = {"_asc", "_des", "max"};
+  std::vector<std::string> wavelet_suffixes = {"_asc", "_des", "_max"};
   std::vector<std::string> wavelet_levels = {"_l0", "_l1", "_l2", "_l3"};
 
   for (const auto &variable_name : variable_names) {
@@ -472,16 +463,11 @@ std::vector<std::string> create_column_labels(NAMES *vname,
       for (const auto &wavelet_suffix : wavelet_suffixes) {
         //        if (variable_name == "Trac" && wavelet_suffix == "_des")
         //          continue;
-        wavelet_columns.push_back(variable_name + wavelet_suffix +
-                                  wavelet_level);
+        wavelet_columns.push_back(variable_name + wavelet_level +
+                                  wavelet_suffix);
       }
     }
   }
-
-  for (const auto &wavelet_column : wavelet_columns) {
-    std::cout << wavelet_column << ' ';
-  }
-  std::cout << std::endl;
 
   std::vector<std::string> statistic_suffixes = {"_mean", "_std", "_skew"};
 
@@ -490,11 +476,6 @@ std::vector<std::string> create_column_labels(NAMES *vname,
       statistics_columns.push_back(variable_name + statistic_suffix);
     }
   }
-
-  for (const auto &statistics_column : statistics_columns) {
-    std::cout << statistics_column << ' ';
-  }
-  std::cout << std::endl;
 
   wavelet_columns.insert(wavelet_columns.end(), statistics_columns.begin(),
                          statistics_columns.end());

@@ -11,7 +11,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // extract
-int extract(const std::string input_file_prefix, const std::string class_label, int max_number_of_frames, int maximum_boundary_length, int maximum_cell_area, int cooccurrence_levels, int number_of_wavelet_levels);
+Rcpp::DataFrame extract(const std::string input_file_prefix, const std::string class_label, int max_number_of_frames, int maximum_boundary_length, int maximum_cell_area, int cooccurrence_levels, int number_of_wavelet_levels);
 RcppExport SEXP _CellPhe_extract(SEXP input_file_prefixSEXP, SEXP class_labelSEXP, SEXP max_number_of_framesSEXP, SEXP maximum_boundary_lengthSEXP, SEXP maximum_cell_areaSEXP, SEXP cooccurrence_levelsSEXP, SEXP number_of_wavelet_levelsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
