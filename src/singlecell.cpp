@@ -100,7 +100,7 @@ std::vector<std::string> create_column_labels(NAMES *vname,
                                               int number_of_variables);
 // [[Rcpp::export]]
 Rcpp::DataFrame
-extract(Rcpp::NumericMatrix feature_table, const std::string input_file_prefix,
+extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, const std::string input_file_prefix,
         const std::string class_label, const int max_number_of_frames,
         const int maximum_boundary_length, const int maximum_cell_area,
         const int cooccurrence_levels, const int number_of_wavelet_levels);
@@ -115,7 +115,7 @@ extract(Rcpp::NumericMatrix feature_table, const std::string input_file_prefix,
  * FUNCTION DEFINITIONS
  ******************************************************************************/
 Rcpp::DataFrame
-extract(Rcpp::NumericMatrix feature_table, const std::string input_file_prefix,
+extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, const std::string input_file_prefix,
         const std::string class_label, const int max_number_of_frames,
         const int maximum_boundary_length, const int maximum_cell_area,
         const int cooccurrence_levels, const int number_of_wavelet_levels) {
@@ -145,8 +145,8 @@ extract(Rcpp::NumericMatrix feature_table, const std::string input_file_prefix,
 
   //  strcpy(ftfile, input_file_prefix.c_str());
   //  strcat(ftfile, "_ft.txt\0");
-  strcpy(bfile, input_file_prefix.c_str());
-  strcat(bfile, "_b.txt\0");
+  // strcpy(bfile, input_file_prefix.c_str());
+  // strcat(bfile, "_b.txt\0");
   strcpy(imfile, input_file_prefix.c_str());
   strcat(imfile, "_im.txt\0");
 
@@ -301,24 +301,36 @@ extract(Rcpp::NumericMatrix feature_table, const std::string input_file_prefix,
   nframes = framenum + 1;
 
   /* read in boundary data */
-  fp = fopen(bfile, "r");
-  printf("opened %s\n", bfile);
-  tmp = 0;
-  while (tmp != EOF) {
-    tmp = fscanf(fp, "%d %d %d", &dtmp, &dtmp1, &dtmp2);
-    printf("%d %d %d\n", dtmp, dtmp1, dtmp2);
-    if (tmp != EOF) {
-      framenum = dtmp - 1 - startframe;
-      boundary[framenum].blength = dtmp2;
-      for (k = 0; k < boundary[framenum].blength; k++) {
-        fscanf(fp, "%d %d", &dtmp3, &dtmp4);
-        printf("%d %d %d\n", k, dtmp3, dtmp4);
-        boundary[framenum].xpix[k] = dtmp3;
-        boundary[framenum].ypix[k] = dtmp4;
-      }
+//  fp = fopen(bfile, "r");
+//  printf("opened %s\n", bfile);
+//  tmp = 0;
+//  while (tmp != EOF) {
+//    tmp = fscanf(fp, "%d %d %d", &dtmp, &dtmp1, &dtmp2);
+//    printf("%d %d %d\n", dtmp, dtmp1, dtmp2);
+//    if (tmp != EOF) {
+//      framenum = dtmp - 1 - startframe;
+//      boundary[framenum].blength = dtmp2;
+//      for (k = 0; k < boundary[framenum].blength; k++) {
+//        fscanf(fp, "%d %d", &dtmp3, &dtmp4);
+//        printf("%d %d %d\n", k, dtmp3, dtmp4);
+//        boundary[framenum].xpix[k] = dtmp3;
+//        boundary[framenum].ypix[k] = dtmp4;
+//      }
+//    }
+//  }
+//  fclose(fp);
+  
+  /* read in boundary data */
+  for (const auto& row: boundary_coordinates) {
+    Rcpp::IntegerVector coordinates = Rcpp::as<Rcpp::IntegerVector>(row);
+    framenum = coordinates[0] - 1 - startframe;
+    boundary[framenum].blength = coordinates[2];
+
+    for (k = 0; k < boundary[framenum].blength; ++k) {
+      boundary[framenum].xpix[k] = coordinates[k + 3];
+      boundary[framenum].ypix[k] = coordinates[k + 4];
     }
   }
-  fclose(fp);
 
   /* read in image data */
   fp = fopen(imfile, "r");
