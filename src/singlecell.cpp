@@ -99,17 +99,31 @@ void writedata(INVARS *input, int number_of_wavelet_levels, int numinput,
 std::vector<std::string> create_column_labels(NAMES *vname,
                                               int number_of_variables);
 // [[Rcpp::export]]
-Rcpp::DataFrame extract(const std::string input_file_prefix,
-                        const std::string class_label, int max_number_of_frames,
-                        int maximum_boundary_length, int maximum_cell_area,
-                        int cooccurrence_levels, int number_of_wavelet_levels);
+Rcpp::DataFrame
+extract(Rcpp::NumericMatrix feature_table, const std::string input_file_prefix,
+        const std::string class_label, const int max_number_of_frames,
+        const int maximum_boundary_length, const int maximum_cell_area,
+        const int cooccurrence_levels, const int number_of_wavelet_levels);
+
+// Rcpp::DataFrame extract(const std::string input_file_prefix,
+//                        const std::string class_label, int
+//                        max_number_of_frames, int maximum_boundary_length, int
+//                        maximum_cell_area, int cooccurrence_levels, int
+//                        number_of_wavelet_levels);
+
 /*******************************************************************************
  * FUNCTION DEFINITIONS
  ******************************************************************************/
-Rcpp::DataFrame extract(const std::string input_file_prefix,
-                        const std::string class_label, int max_number_of_frames,
-                        int maximum_boundary_length, int maximum_cell_area,
-                        int cooccurrence_levels, int number_of_wavelet_levels) {
+Rcpp::DataFrame
+extract(Rcpp::NumericMatrix feature_table, const std::string input_file_prefix,
+        const std::string class_label, const int max_number_of_frames,
+        const int maximum_boundary_length, const int maximum_cell_area,
+        const int cooccurrence_levels, const int number_of_wavelet_levels) {
+  // Rcpp::DataFrame extract(const std::string input_file_prefix,
+  //                        const std::string class_label, int
+  //                        max_number_of_frames, int maximum_boundary_length,
+  //                        int maximum_cell_area, int cooccurrence_levels, int
+  //                        number_of_wavelet_levels) {
   int j, k, ind, ix, iy, xpix, ypix, numvars, nframes, framenum;
   int tmp, dtmp, dtmp1, dtmp2, dtmp3, dtmp4;
   float X, Y, Volume, Thickness, Radius, Area, Sphericity, Vel1, Vel2;
@@ -129,8 +143,8 @@ Rcpp::DataFrame extract(const std::string input_file_prefix,
   char ch;
   char classlabel[100];
 
-  strcpy(ftfile, input_file_prefix.c_str());
-  strcat(ftfile, "_ft.txt\0");
+  //  strcpy(ftfile, input_file_prefix.c_str());
+  //  strcat(ftfile, "_ft.txt\0");
   strcpy(bfile, input_file_prefix.c_str());
   strcat(bfile, "_b.txt\0");
   strcpy(imfile, input_file_prefix.c_str());
@@ -186,23 +200,41 @@ Rcpp::DataFrame extract(const std::string input_file_prefix,
                                         cooccurrence_levels * sizeof(double));
   }
 
-  /* open feature table */
-  fp = fopen(ftfile, "r");
-  printf("opened %s\n", ftfile);
-  /* read past first line */
-  readLine(fp);
-  tmp = 0;
+  //  /* open feature table */
+  //  fp = fopen(ftfile, "r");
+  //  printf("opened %s\n", ftfile);
+  //  /* read past first line */
+  //  readLine(fp);
+  //  tmp = 0;
   startframe = -1;
-  while (fscanf(fp, "%d %d %d %d ", &dtmp, &dtmp3, &dtmp1, &dtmp2) != EOF) {
-    fscanf(fp, "%f %f %d %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f\n", &X,
-           &Y, &xpix, &ypix, &Volume, &Thickness, &Radius, &Area, &Sphericity,
-           &Length, &Width, &Orientation, &Mass, &Displacement, &Velocity,
-           &Vel1, &Vel2, &TrackLength);
-    framenum = dtmp - 1;
-    if (startframe == -1)
+
+  // TODO: iterate through input feature matrix here and copy variables
+  for (int row_index = 0; row_index < feature_table.nrow(); ++row_index) {
+    framenum = (feature_table(row_index, 0)) - 1;
+    if (startframe == -1) {
       startframe = framenum;
+    }
     framenum -= startframe;
-    /* NOTE numvars 0-3 are used in densitycalc and varfromcentre */
+
+    X = feature_table(row_index, 4);
+    Y = feature_table(row_index, 5);
+    xpix = feature_table(row_index, 6);
+    ypix = feature_table(row_index, 7);
+    Volume = feature_table(row_index, 8);
+    Thickness = feature_table(row_index, 9);
+    Radius = feature_table(row_index, 10);
+    Area = feature_table(row_index, 11);
+    Sphericity = feature_table(row_index, 12);
+    Length = feature_table(row_index, 13);
+    Width = feature_table(row_index, 14);
+    Orientation = feature_table(row_index, 15);
+    Mass = feature_table(row_index, 16);
+    Displacement = feature_table(row_index, 17);
+    Velocity = feature_table(row_index, 18);
+    Vel1 = feature_table(row_index, 19);
+    Vel2 = feature_table(row_index, 20);
+    TrackLength = feature_table(row_index, 21);
+
     input[0].frame[framenum] = X;
     input[1].frame[framenum] = Y;
     input[2].frame[framenum] = Volume;
@@ -227,7 +259,43 @@ Rcpp::DataFrame extract(const std::string input_file_prefix,
     strcpy(vname[10].var, "D2T\0");
     missingframe[framenum] = 0;
   }
-  fclose(fp);
+
+  //  while (fscanf(fp, "%d %d %d %d ", &dtmp, &dtmp3, &dtmp1, &dtmp2) != EOF) {
+  //    fscanf(fp, "%f %f %d %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f\n",
+  //    &X,
+  //           &Y, &xpix, &ypix, &Volume, &Thickness, &Radius, &Area,
+  //           &Sphericity, &Length, &Width, &Orientation, &Mass, &Displacement,
+  //           &Velocity, &Vel1, &Vel2, &TrackLength);
+  //    framenum = dtmp - 1;
+  //    if (startframe == -1)
+  //      startframe = framenum;
+  //    framenum -= startframe;
+  //    /* NOTE numvars 0-3 are used in densitycalc and varfromcentre */
+  //    input[0].frame[framenum] = X;
+  //    input[1].frame[framenum] = Y;
+  //    input[2].frame[framenum] = Volume;
+  //    strcpy(vname[2].var, "Vol\0");
+  //    input[3].frame[framenum] = Radius;
+  //    strcpy(vname[3].var, "Rad\0");
+  //    input[4].frame[framenum] = Sphericity;
+  //    strcpy(vname[4].var, "Sph\0");
+  //    input[5].frame[framenum] = Length;
+  //    strcpy(vname[5].var, "Len\0");
+  //    input[6].frame[framenum] = Width;
+  //    strcpy(vname[6].var, "Wid\0");
+  //    input[7].frame[framenum] = Velocity;
+  //    strcpy(vname[7].var, "Velocity\0");
+  //    input[8].frame[framenum] = Displacement;
+  //    strcpy(vname[8].var, "Dis\0");
+  //    input[9].frame[framenum] = TrackLength;
+  //    strcpy(vname[9].var, "Trac\0");
+  //    input[10].frame[framenum] = 0.0;
+  //    if (TrackLength > 0.0)
+  //      input[10].frame[framenum] = Displacement / TrackLength;
+  //    strcpy(vname[10].var, "D2T\0");
+  //    missingframe[framenum] = 0;
+  //  }
+  //  fclose(fp);
 
   numvars = 11;
   nframes = framenum + 1;

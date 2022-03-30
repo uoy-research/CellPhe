@@ -11,25 +11,26 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // extract
-Rcpp::DataFrame extract(const std::string input_file_prefix, const std::string class_label, int max_number_of_frames, int maximum_boundary_length, int maximum_cell_area, int cooccurrence_levels, int number_of_wavelet_levels);
-RcppExport SEXP _CellPhe_extract(SEXP input_file_prefixSEXP, SEXP class_labelSEXP, SEXP max_number_of_framesSEXP, SEXP maximum_boundary_lengthSEXP, SEXP maximum_cell_areaSEXP, SEXP cooccurrence_levelsSEXP, SEXP number_of_wavelet_levelsSEXP) {
+Rcpp::DataFrame extract(Rcpp::NumericMatrix feature_table, const std::string input_file_prefix, const std::string class_label, const int max_number_of_frames, const int maximum_boundary_length, const int maximum_cell_area, const int cooccurrence_levels, const int number_of_wavelet_levels);
+RcppExport SEXP _CellPhe_extract(SEXP feature_tableSEXP, SEXP input_file_prefixSEXP, SEXP class_labelSEXP, SEXP max_number_of_framesSEXP, SEXP maximum_boundary_lengthSEXP, SEXP maximum_cell_areaSEXP, SEXP cooccurrence_levelsSEXP, SEXP number_of_wavelet_levelsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type feature_table(feature_tableSEXP);
     Rcpp::traits::input_parameter< const std::string >::type input_file_prefix(input_file_prefixSEXP);
     Rcpp::traits::input_parameter< const std::string >::type class_label(class_labelSEXP);
-    Rcpp::traits::input_parameter< int >::type max_number_of_frames(max_number_of_framesSEXP);
-    Rcpp::traits::input_parameter< int >::type maximum_boundary_length(maximum_boundary_lengthSEXP);
-    Rcpp::traits::input_parameter< int >::type maximum_cell_area(maximum_cell_areaSEXP);
-    Rcpp::traits::input_parameter< int >::type cooccurrence_levels(cooccurrence_levelsSEXP);
-    Rcpp::traits::input_parameter< int >::type number_of_wavelet_levels(number_of_wavelet_levelsSEXP);
-    rcpp_result_gen = Rcpp::wrap(extract(input_file_prefix, class_label, max_number_of_frames, maximum_boundary_length, maximum_cell_area, cooccurrence_levels, number_of_wavelet_levels));
+    Rcpp::traits::input_parameter< const int >::type max_number_of_frames(max_number_of_framesSEXP);
+    Rcpp::traits::input_parameter< const int >::type maximum_boundary_length(maximum_boundary_lengthSEXP);
+    Rcpp::traits::input_parameter< const int >::type maximum_cell_area(maximum_cell_areaSEXP);
+    Rcpp::traits::input_parameter< const int >::type cooccurrence_levels(cooccurrence_levelsSEXP);
+    Rcpp::traits::input_parameter< const int >::type number_of_wavelet_levels(number_of_wavelet_levelsSEXP);
+    rcpp_result_gen = Rcpp::wrap(extract(feature_table, input_file_prefix, class_label, max_number_of_frames, maximum_boundary_length, maximum_cell_area, cooccurrence_levels, number_of_wavelet_levels));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_CellPhe_extract", (DL_FUNC) &_CellPhe_extract, 7},
+    {"_CellPhe_extract", (DL_FUNC) &_CellPhe_extract, 8},
     {NULL, NULL, 0}
 };
 
