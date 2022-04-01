@@ -321,8 +321,7 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, cons
 //  fclose(fp);
   
   /* read in boundary data */
-  for (const auto& row: boundary_coordinates) {
-    Rcpp::IntegerVector coordinates = Rcpp::as<Rcpp::IntegerVector>(row);
+  for (const Rcpp::IntegerVector coordinates: boundary_coordinates) {
     framenum = coordinates[0] - 1 - startframe;
     boundary[framenum].blength = coordinates[2];
 
@@ -364,7 +363,6 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, cons
     }
   }
   fclose(fp);
-
   cooccur(object, cooccurrence_levels, nframes, missingframe);
   varFromCentre(boundary, input, maximum_boundary_length, numvars, nframes,
                 missingframe);
@@ -909,9 +907,9 @@ void polyClass(BOUND *boundary, INVARS *input, int inputnum, int nframes,
         yArray[j] = boundary[k].ypix[j];
       }
       int *xPoints = NULL;
-      xPoints = (int *)malloc(num + 2 * sizeof(int));
+      xPoints = (int *)malloc((num + 2) * sizeof(int));
       int *yPoints = NULL;
-      yPoints = (int *)malloc(num + 2 * sizeof(int));
+      yPoints = (int *)malloc((num + 2) * sizeof(int));
       polygon(xArray, yArray, num, thresh, xPoints, yPoints, &nPoints);
 
       distMax = 0.0;
