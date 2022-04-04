@@ -145,8 +145,8 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, cons
 
   //  strcpy(ftfile, input_file_prefix.c_str());
   //  strcat(ftfile, "_ft.txt\0");
-  // strcpy(bfile, input_file_prefix.c_str());
-  // strcat(bfile, "_b.txt\0");
+  //strcpy(bfile, input_file_prefix.c_str());
+  //strcat(bfile, "_b.txt\0");
   strcpy(imfile, input_file_prefix.c_str());
   strcat(imfile, "_im.txt\0");
 
@@ -324,10 +324,12 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, cons
   for (const Rcpp::IntegerVector coordinates: boundary_coordinates) {
     framenum = coordinates[0] - 1 - startframe;
     boundary[framenum].blength = coordinates[2];
-
+    
+    int stride = 3;
     for (k = 0; k < boundary[framenum].blength; ++k) {
-      boundary[framenum].xpix[k] = coordinates[k + 3];
-      boundary[framenum].ypix[k] = coordinates[k + 4];
+      boundary[framenum].xpix[k] = coordinates[stride];
+      boundary[framenum].ypix[k] = coordinates[stride + 1];
+      stride += 2;
     }
   }
 

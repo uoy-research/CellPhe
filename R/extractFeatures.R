@@ -20,7 +20,8 @@ prepareBoundaryCoordinates = function(roiArchive, cellID) {
     numberOfCoordinates = roi$"n"
     coordinates = c(t(roi$"coords"))
     
-    return (sapply(c(frameID, cellID, numberOfCoordinates, coordinates), as.integer))
+    #return (sapply(c(frameID, cellID, numberOfCoordinates, coordinates), as.integer, USE.NAMES = FALSE))
+    return (as.integer(c(frameID, cellID, numberOfCoordinates, coordinates)))
   }
 
   boundaryCoordinates = lapply(orderedRoiSubsetFileList, prepareRoiOutput)
