@@ -6,7 +6,7 @@ prepareFeatureTable = function(featureTableFile, cellID) {
   return (as.matrix(subset(featureTableData, featureTableData$"Tracking ID" == cellID)))
 }
 
-getRois = function(roiArchive, cellID) {
+readRois = function(roiArchive, cellID) {
   roiFullFileList = unzip(roiArchive, list = TRUE)
 
   grepString = paste('*-', cellID, '.roi', sep = '')
@@ -15,21 +15,18 @@ getRois = function(roiArchive, cellID) {
   
   orderedRoiSubsetFileList = roiSubsetFileList[order(as.numeric(sub("([0-9]+)\\-.*\\.roi", "\\1", roiSubsetFileList)))]
   rois = lapply(orderedRoiSubsetFileList, RImageJROI::read.ijroi)
+  rois = lapply(rois, function(roi) {roi[["cellId"]] = sub(".*-", "", roi[["name"]]); roi[["frameId"]] = sub("-.*", "", roi[["name"]]); return (roi)})
   lapply(orderedRoiSubsetFileList, unlink)
+
   return (rois)
 }
 
-transformRoi = function(roiData) {
-  frameID = sub("-.*", "", roiData[["name"]])
-  cellID = sub(".*-", "", roiData[["name"]])
-  numberOfCoordinates = roiData[["n"]]
-  coordinates = c(t(roiData[["coords"]]))
-  
-  return (as.integer(c(frameID, cellID, numberOfCoordinates, coordinates)))
+simplifyRoi = function(roi) {
+  return (as.integer(c(roi[["frameId"]], roi[["cellId"]], roi[["n"]], c(t(roi[["coords"]])))))
 }
 
 prepareBoundaryCoordinates = function(roiArchive, cellID) {
-  return (lapply(getRois(roiArchive, cellID), transformRoi))
+  return (lapply(readRois(roiArchive, cellID), simplifyRoi))
 }
 
 normalise = function(values, lower, upper) {
@@ -41,15 +38,39 @@ normalise = function(values, lower, upper) {
 
 readTiffs = function(directory) {
   tiffFileList = list.files(directory, pattern = "*.tif$", full.name = TRUE)
-  return (lapply(tiffFileList, tiff::readTIFF))
+
+#  lapply(tiffFileList, function(filename) {
+#         return (list("frameId" = sub(".*-([0-9]{4})\\.tif", "\\1", filename), "intensities" = tiff::readTIFF(filename)))
+#  })
+
+  orderedTiffFileList = tiffFileList[order(as.numeric(sub(".*-([0-9]{4})\\.tif", "\\1", tiffFileList)))]
+  return (lapply(orderedTiffFileList, tiff::readTIFF))
 }
 
-applyRoiMask = function(roi, frameNumber, frames) {
-  # FOR min(X) TO max(X) IN roi
-    # FOR min(Y) TO max(Y) IN roi
-      # IF [x, y] IS in OR on surface OF polygon described by ROI
-        # ADD [x, y] value TO list of intensities to return
-      # IF [x, y] IS NOT in polygon described by ROI
-        # ADD -1 TO list of intensities to return
-  # DROP NaN VALUES from intensities to return
+applyRoiMask = function(roi, frame) {
+  intensities = matrix(ncol = 3)
+
+  for (i in roi$left : roi$right) {
+    for (j in roi$top : roi$bottom) {
+      if (ptinpoly::pip2d(roi$coords, cbind(i, j)) %in% c(0, 1)) {
+        intensities = rbind(intensities, cbind(i, j, frame[j + 1, i + 1]))
+      }
+
+      if (ptinpoly::pip2d(roi$coords, cbind(i, j)) %in% c(0, 1)) {
+        intensities = rbind(intensities, cbind(i, j, -1))
+      }
+    }
+  }
+
+  intensities = na.omit(intensities)
+  attributes(intensities)[["na.action"]] = NULL
+
+  intensities[ , 1] = intensities[ , 1] - roi$left
+  intensities[ , 2] = intensities[ , 2] - roi$top
+  intensities = cbind(intensities, apply(intensities, 1, function(row) return (row[[1]] + (roi$width * row[[2]]))))
+  intensities = intensities[order(intensities[ , 4]), ]
+  
+  return (c(frame, roi$width, roi$height, intensities[ , 3]))
+
+  return (intensities)
 }
