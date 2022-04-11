@@ -39,12 +39,9 @@ normalise = function(values, lower, upper) {
 readTiffs = function(directory) {
   tiffFileList = list.files(directory, pattern = "*.tif$", full.name = TRUE)
 
-#  lapply(tiffFileList, function(filename) {
-#         return (list("frameId" = sub(".*-([0-9]{4})\\.tif", "\\1", filename), "intensities" = tiff::readTIFF(filename)))
-#  })
-
-  orderedTiffFileList = tiffFileList[order(as.numeric(sub(".*-([0-9]{4})\\.tif", "\\1", tiffFileList)))]
-  return (lapply(orderedTiffFileList, tiff::readTIFF))
+  return (lapply(tiffFileList, function(filename) {
+         return (list("frameId" = as.numeric(sub(".*-([0-9]{4})\\.tif", "\\1", filename)), "intensities" = tiff::readTIFF(filename)))
+  }))
 }
 
 applyRoiMask = function(roi, frame) {
