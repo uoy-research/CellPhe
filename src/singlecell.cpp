@@ -100,30 +100,30 @@ std::vector<std::string> create_column_labels(NAMES *vname,
                                               int number_of_variables);
 // [[Rcpp::export]]
 Rcpp::DataFrame
-extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, const std::string input_file_prefix,
+extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
+        Rcpp::List mini_image,
         const std::string class_label, const int max_number_of_frames,
         const int maximum_boundary_length, const int maximum_cell_area,
         const int cooccurrence_levels, const int number_of_wavelet_levels);
+//extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, const std::string input_file_prefix,
+//        const std::string class_label, const int max_number_of_frames,
+//        const int maximum_boundary_length, const int maximum_cell_area,
+//        const int cooccurrence_levels, const int number_of_wavelet_levels);
 
-// Rcpp::DataFrame extract(const std::string input_file_prefix,
-//                        const std::string class_label, int
-//                        max_number_of_frames, int maximum_boundary_length, int
-//                        maximum_cell_area, int cooccurrence_levels, int
-//                        number_of_wavelet_levels);
 
 /*******************************************************************************
  * FUNCTION DEFINITIONS
  ******************************************************************************/
 Rcpp::DataFrame
-extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, const std::string input_file_prefix,
+extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
+        Rcpp::List mini_image,
         const std::string class_label, const int max_number_of_frames,
         const int maximum_boundary_length, const int maximum_cell_area,
         const int cooccurrence_levels, const int number_of_wavelet_levels) {
-  // Rcpp::DataFrame extract(const std::string input_file_prefix,
-  //                        const std::string class_label, int
-  //                        max_number_of_frames, int maximum_boundary_length,
-  //                        int maximum_cell_area, int cooccurrence_levels, int
-  //                        number_of_wavelet_levels) {
+//extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, const std::string input_file_prefix,
+//        const std::string class_label, const int max_number_of_frames,
+//        const int maximum_boundary_length, const int maximum_cell_area,
+//        const int cooccurrence_levels, const int number_of_wavelet_levels) {
   int j, k, ind, ix, iy, xpix, ypix, numvars, nframes, framenum;
   int tmp, dtmp, dtmp1, dtmp2, dtmp3, dtmp4;
   float X, Y, Volume, Thickness, Radius, Area, Sphericity, Vel1, Vel2;
@@ -147,8 +147,8 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, cons
   //  strcat(ftfile, "_ft.txt\0");
   //strcpy(bfile, input_file_prefix.c_str());
   //strcat(bfile, "_b.txt\0");
-  strcpy(imfile, input_file_prefix.c_str());
-  strcat(imfile, "_im.txt\0");
+  //strcpy(imfile, input_file_prefix.c_str());
+  //strcat(imfile, "_im.txt\0");
 
   strcpy(classlabel, class_label.c_str());
 
@@ -332,39 +332,73 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, cons
       stride += 2;
     }
   }
-
-  /* read in image data */
-  fp = fopen(imfile, "r");
-  printf("opened %s\n", imfile);
-  tmp = 0;
-  while (tmp != EOF) {
+  
+  /* read in mini image */
+  for (const Rcpp::IntegerVector frame: mini_image) {
     ind = 0;
-    tmp = fscanf(fp, "%d %d %d ", &dtmp, &dtmp1, &dtmp2);
-    if (tmp != EOF) {
-      framenum = dtmp - 1 - startframe;
-      object[framenum].npix = 0;
-      object[framenum].width = dtmp1;
-      object[framenum].height = dtmp2;
-      for (k = 0; k < dtmp1 * dtmp2; k++) {
-        object[framenum].mask[k] = 1;
-        fscanf(fp, "%d\n", &dtmp3);
-        object[framenum].image[k] = dtmp3;
-        if (object[framenum].image[k] == -1) {
-          object[framenum].image[k] = 0;
-          object[framenum].mask[k] = 0;
-        } else {
-          object[framenum].intensity[object[framenum].npix] = dtmp3;
-          ix = ind % object[framenum].width;
-          iy = (ind - ix) / object[framenum].width;
-          object[framenum].xpix[object[framenum].npix] = ix;
-          object[framenum].ypix[object[framenum].npix] = iy;
-          object[framenum].npix++;
-        }
-        ind++;
+    framenum = frame[0] - 1 - startframe;
+    object[framenum].npix = 0;
+    object[framenum].width = frame[1];
+    object[framenum].height = frame[2];
+    
+//    TODO: check why this doesn't work 
+//    for (k = 0; k < (frame.end() - (frame.begin() + 3)); ++k) {
+      for (k = 0; k < (frame[1] * frame[2]); ++k) {
+      object[framenum].mask[k] = 1;
+      object[framenum].image[k] = frame[k + 3];
+
+      if (object[framenum].image[k] == -1) {
+        object[framenum].image[k] = 0;
+        object[framenum].mask[k] = 0;
+      } else {
+        object[framenum].intensity[object[framenum].npix] = frame[k + 3];
+
+        ix = ind % object[framenum].width;
+        iy = (ind - ix) / object[framenum].width;
+
+        object[framenum].xpix[object[framenum].npix] = ix;
+        object[framenum].ypix[object[framenum].npix] = iy;
+
+        object[framenum].npix++;
       }
+
+      ind++;
     }
   }
-  fclose(fp);
+  
+  /* read in image data */
+//  fp = fopen(imfile, "r");
+//  printf("opened %s\n", imfile);
+//  tmp = 0;
+//  while (tmp != EOF) {
+//    ind = 0;
+//    tmp = fscanf(fp, "%d %d %d ", &dtmp, &dtmp1, &dtmp2);
+//    if (tmp != EOF) {
+//      framenum = dtmp - 1 - startframe;
+//      object[framenum].npix = 0;
+//      object[framenum].width = dtmp1;
+//      object[framenum].height = dtmp2;
+//      for (k = 0; k < dtmp1 * dtmp2; k++) {
+//        object[framenum].mask[k] = 1;
+//        fscanf(fp, "%d\n", &dtmp3);
+//        object[framenum].image[k] = dtmp3;
+//        if (object[framenum].image[k] == -1) {
+//          object[framenum].image[k] = 0;
+//          object[framenum].mask[k] = 0;
+//        } else {
+//          object[framenum].intensity[object[framenum].npix] = dtmp3;
+//          ix = ind % object[framenum].width;
+//          iy = (ind - ix) / object[framenum].width;
+//          object[framenum].xpix[object[framenum].npix] = ix;
+//          object[framenum].ypix[object[framenum].npix] = iy;
+//          object[framenum].npix++;
+//        }
+//        ind++;
+//      }
+//    }
+//  }
+//  fclose(fp);
+
   cooccur(object, cooccurrence_levels, nframes, missingframe);
   varFromCentre(boundary, input, maximum_boundary_length, numvars, nframes,
                 missingframe);
