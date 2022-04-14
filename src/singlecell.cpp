@@ -120,11 +120,6 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
         const std::string class_label, const int max_number_of_frames,
         const int maximum_boundary_length, const int maximum_cell_area,
         const int cooccurrence_levels, const int number_of_wavelet_levels);
-//extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, const std::string input_file_prefix,
-//        const std::string class_label, const int max_number_of_frames,
-//        const int maximum_boundary_length, const int maximum_cell_area,
-//        const int cooccurrence_levels, const int number_of_wavelet_levels);
-
 
 /*******************************************************************************
  * FUNCTION DEFINITIONS
@@ -135,10 +130,6 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
         const std::string class_label, const int max_number_of_frames,
         const int maximum_boundary_length, const int maximum_cell_area,
         const int cooccurrence_levels, const int number_of_wavelet_levels) {
-//extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates, const std::string input_file_prefix,
-//        const std::string class_label, const int max_number_of_frames,
-//        const int maximum_boundary_length, const int maximum_cell_area,
-//        const int cooccurrence_levels, const int number_of_wavelet_levels) {
   int j, k, ind, ix, iy, xpix, ypix, numvars, nframes, framenum;
   int tmp, dtmp, dtmp1, dtmp2, dtmp3, dtmp4;
   float X, Y, Volume, Thickness, Radius, Area, Sphericity, Vel1, Vel2;
@@ -157,13 +148,6 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
 
   char ch;
   char classlabel[100];
-
-  //  strcpy(ftfile, input_file_prefix.c_str());
-  //  strcat(ftfile, "_ft.txt\0");
-  //strcpy(bfile, input_file_prefix.c_str());
-  //strcat(bfile, "_b.txt\0");
-  //strcpy(imfile, input_file_prefix.c_str());
-  //strcat(imfile, "_im.txt\0");
 
   strcpy(classlabel, class_label.c_str());
 
@@ -215,12 +199,6 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
                                         cooccurrence_levels * sizeof(double));
   }
 
-  //  /* open feature table */
-  //  fp = fopen(ftfile, "r");
-  //  printf("opened %s\n", ftfile);
-  //  /* read past first line */
-  //  readLine(fp);
-  //  tmp = 0;
   startframe = -1;
 
   // TODO: iterate through input feature matrix here and copy variables
@@ -275,66 +253,10 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
     missingframe[framenum] = 0;
   }
 
-  //  while (fscanf(fp, "%d %d %d %d ", &dtmp, &dtmp3, &dtmp1, &dtmp2) != EOF) {
-  //    fscanf(fp, "%f %f %d %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f\n",
-  //    &X,
-  //           &Y, &xpix, &ypix, &Volume, &Thickness, &Radius, &Area,
-  //           &Sphericity, &Length, &Width, &Orientation, &Mass, &Displacement,
-  //           &Velocity, &Vel1, &Vel2, &TrackLength);
-  //    framenum = dtmp - 1;
-  //    if (startframe == -1)
-  //      startframe = framenum;
-  //    framenum -= startframe;
-  //    /* NOTE numvars 0-3 are used in densitycalc and varfromcentre */
-  //    input[0].frame[framenum] = X;
-  //    input[1].frame[framenum] = Y;
-  //    input[2].frame[framenum] = Volume;
-  //    strcpy(vname[2].var, "Vol\0");
-  //    input[3].frame[framenum] = Radius;
-  //    strcpy(vname[3].var, "Rad\0");
-  //    input[4].frame[framenum] = Sphericity;
-  //    strcpy(vname[4].var, "Sph\0");
-  //    input[5].frame[framenum] = Length;
-  //    strcpy(vname[5].var, "Len\0");
-  //    input[6].frame[framenum] = Width;
-  //    strcpy(vname[6].var, "Wid\0");
-  //    input[7].frame[framenum] = Velocity;
-  //    strcpy(vname[7].var, "Velocity\0");
-  //    input[8].frame[framenum] = Displacement;
-  //    strcpy(vname[8].var, "Dis\0");
-  //    input[9].frame[framenum] = TrackLength;
-  //    strcpy(vname[9].var, "Trac\0");
-  //    input[10].frame[framenum] = 0.0;
-  //    if (TrackLength > 0.0)
-  //      input[10].frame[framenum] = Displacement / TrackLength;
-  //    strcpy(vname[10].var, "D2T\0");
-  //    missingframe[framenum] = 0;
-  //  }
-  //  fclose(fp);
 
   numvars = 11;
   nframes = framenum + 1;
 
-  /* read in boundary data */
-//  fp = fopen(bfile, "r");
-//  printf("opened %s\n", bfile);
-//  tmp = 0;
-//  while (tmp != EOF) {
-//    tmp = fscanf(fp, "%d %d %d", &dtmp, &dtmp1, &dtmp2);
-//    printf("%d %d %d\n", dtmp, dtmp1, dtmp2);
-//    if (tmp != EOF) {
-//      framenum = dtmp - 1 - startframe;
-//      boundary[framenum].blength = dtmp2;
-//      for (k = 0; k < boundary[framenum].blength; k++) {
-//        fscanf(fp, "%d %d", &dtmp3, &dtmp4);
-//        printf("%d %d %d\n", k, dtmp3, dtmp4);
-//        boundary[framenum].xpix[k] = dtmp3;
-//        boundary[framenum].ypix[k] = dtmp4;
-//      }
-//    }
-//  }
-//  fclose(fp);
-  
   /* read in boundary data */
   for (const Rcpp::IntegerVector coordinates: boundary_coordinates) {
     framenum = coordinates[0] - 1 - startframe;
@@ -381,39 +303,6 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
     }
   }
   
-  /* read in image data */
-//  fp = fopen(imfile, "r");
-//  printf("opened %s\n", imfile);
-//  tmp = 0;
-//  while (tmp != EOF) {
-//    ind = 0;
-//    tmp = fscanf(fp, "%d %d %d ", &dtmp, &dtmp1, &dtmp2);
-//    if (tmp != EOF) {
-//      framenum = dtmp - 1 - startframe;
-//      object[framenum].npix = 0;
-//      object[framenum].width = dtmp1;
-//      object[framenum].height = dtmp2;
-//      for (k = 0; k < dtmp1 * dtmp2; k++) {
-//        object[framenum].mask[k] = 1;
-//        fscanf(fp, "%d\n", &dtmp3);
-//        object[framenum].image[k] = dtmp3;
-//        if (object[framenum].image[k] == -1) {
-//          object[framenum].image[k] = 0;
-//          object[framenum].mask[k] = 0;
-//        } else {
-//          object[framenum].intensity[object[framenum].npix] = dtmp3;
-//          ix = ind % object[framenum].width;
-//          iy = (ind - ix) / object[framenum].width;
-//          object[framenum].xpix[object[framenum].npix] = ix;
-//          object[framenum].ypix[object[framenum].npix] = iy;
-//          object[framenum].npix++;
-//        }
-//        ind++;
-//      }
-//    }
-//  }
-//  fclose(fp);
-
   cooccur(object, cooccurrence_levels, nframes, missingframe);
   varFromCentre(boundary, input, maximum_boundary_length, numvars, nframes,
                 missingframe);
