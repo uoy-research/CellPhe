@@ -98,6 +98,21 @@ void writedata(INVARS *input, int number_of_wavelet_levels, int numinput,
                char *classlabel);
 std::vector<std::string> create_column_labels(NAMES *vname,
                                               int number_of_variables);
+//' Extract Features
+//'
+//' @param feature_table TODO
+//' @param boundary_coordinates TODO
+//' @param mini_image TODO
+//' @param class_label TODO
+//' @param max_number_of_frames TODO
+//' @param maximum_boundary_length TODO
+//' @param maximum_cell_area TODO
+//' @param cooccurrence_levels TODO
+//' @param number_of_wavelet_levels TODO
+//'
+//' @return TODO
+//'
+//' @export
 // [[Rcpp::export]]
 Rcpp::DataFrame
 extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
