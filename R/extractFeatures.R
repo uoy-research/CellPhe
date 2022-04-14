@@ -10,7 +10,7 @@
 #' @export
 prepareFeatureTable = function(featureTableFile, cellId) {
   featureTableData = read.csv(featureTableFile, check.names = FALSE, skip = 1)
-  colnames(featureTableData) = unlist(lapply(names(featureTableData), function(x) gsub(' \\(.+$', '', x)))
+  colnames(featureTableData) = sapply(names(featureTableData), function (name) { gsub(' \\(.+$', '', name) }, USE.NAMES = FALSE)
   return (as.matrix(subset(featureTableData, featureTableData[["Tracking ID"]] == cellId)))
 }
 
