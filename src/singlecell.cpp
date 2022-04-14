@@ -116,20 +116,20 @@ std::vector<std::string> create_column_labels(NAMES *vname,
 // [[Rcpp::export]]
 Rcpp::DataFrame
 extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
-        Rcpp::List mini_image,
-        const std::string class_label, const int max_number_of_frames,
-        const int maximum_boundary_length, const int maximum_cell_area,
-        const int cooccurrence_levels, const int number_of_wavelet_levels);
+        Rcpp::List mini_image, const std::string class_label,
+        const int max_number_of_frames, const int maximum_boundary_length,
+        const int maximum_cell_area, const int cooccurrence_levels,
+        const int number_of_wavelet_levels);
 
 /*******************************************************************************
  * FUNCTION DEFINITIONS
  ******************************************************************************/
 Rcpp::DataFrame
 extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
-        Rcpp::List mini_image,
-        const std::string class_label, const int max_number_of_frames,
-        const int maximum_boundary_length, const int maximum_cell_area,
-        const int cooccurrence_levels, const int number_of_wavelet_levels) {
+        Rcpp::List mini_image, const std::string class_label,
+        const int max_number_of_frames, const int maximum_boundary_length,
+        const int maximum_cell_area, const int cooccurrence_levels,
+        const int number_of_wavelet_levels) {
   int j, k, ind, ix, iy, xpix, ypix, numvars, nframes, framenum;
   int tmp, dtmp, dtmp1, dtmp2, dtmp3, dtmp4;
   float X, Y, Volume, Thickness, Radius, Area, Sphericity, Vel1, Vel2;
@@ -253,15 +253,14 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
     missingframe[framenum] = 0;
   }
 
-
   numvars = 11;
   nframes = framenum + 1;
 
   /* read in boundary data */
-  for (const Rcpp::IntegerVector coordinates: boundary_coordinates) {
+  for (const Rcpp::IntegerVector coordinates : boundary_coordinates) {
     framenum = coordinates[0] - 1 - startframe;
     boundary[framenum].blength = coordinates[2];
-    
+
     int stride = 3;
     for (k = 0; k < boundary[framenum].blength; ++k) {
       boundary[framenum].xpix[k] = coordinates[stride];
@@ -269,18 +268,18 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
       stride += 2;
     }
   }
-  
+
   /* read in mini image */
-  for (const Rcpp::IntegerVector frame: mini_image) {
+  for (const Rcpp::IntegerVector frame : mini_image) {
     ind = 0;
     framenum = frame[0] - 1 - startframe;
     object[framenum].npix = 0;
     object[framenum].width = frame[1];
     object[framenum].height = frame[2];
-    
-//    TODO: check why this doesn't work 
-//    for (k = 0; k < (frame.end() - (frame.begin() + 3)); ++k) {
-      for (k = 0; k < (frame[1] * frame[2]); ++k) {
+
+    //    TODO: check why this doesn't work
+    //    for (k = 0; k < (frame.end() - (frame.begin() + 3)); ++k) {
+    for (k = 0; k < (frame[1] * frame[2]); ++k) {
       object[framenum].mask[k] = 1;
       object[framenum].image[k] = frame[k + 3];
 
@@ -302,7 +301,7 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
       ind++;
     }
   }
-  
+
   cooccur(object, cooccurrence_levels, nframes, missingframe);
   varFromCentre(boundary, input, maximum_boundary_length, numvars, nframes,
                 missingframe);
