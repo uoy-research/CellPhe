@@ -8,11 +8,11 @@
 /*******************************************************************************
  * HEADERS
  ******************************************************************************/
-#include <ctype.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <Rcpp.h>
 /*******************************************************************************
@@ -131,7 +131,6 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
         const int maximum_cell_area, const int cooccurrence_levels,
         const int number_of_wavelet_levels) {
   int j, k, ind, ix, iy, xpix, ypix, numvars, nframes, framenum;
-  int tmp, dtmp, dtmp1, dtmp2, dtmp3, dtmp4;
   float X, Y, Volume, Thickness, Radius, Area, Sphericity, Vel1, Vel2;
   float Length, Width, Orientation, Mass, Displacement, Velocity, TrackLength;
 
@@ -141,12 +140,6 @@ extract(Rcpp::NumericMatrix feature_table, Rcpp::List boundary_coordinates,
   int numinput = 49;
   int nstats = 3;
 
-  FILE *fp = NULL;
-  char ftfile[100];
-  char bfile[100];
-  char imfile[100];
-
-  char ch;
   char classlabel[100];
 
   strcpy(classlabel, class_label.c_str());
@@ -912,7 +905,7 @@ void polyClass(BOUND *boundary, INVARS *input, int inputnum, int nframes,
  * Description:    Sorts an array of integers into increasing order
  *----------------------------------------------------------------------------*/
 void intSort(int *array, int nRef) {
-  int nInt, ii, i, j, nf;
+  int nInt, ii, i, j;
   int tf;
   nInt = nRef;
   if (nInt == 1)
