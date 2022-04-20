@@ -1,0 +1,3 @@
+laura=function(){
+  print("goodbye")
+}
