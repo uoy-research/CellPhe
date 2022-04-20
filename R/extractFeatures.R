@@ -39,6 +39,7 @@ readRois = function(directory, cellId) {
 #' @param roi ImageJ ROI data, as an ijroi object.
 #'
 #' @return ROI frame ID, cell ID, and coordinates, as an integer vector.
+#' 
 #' @export
 simplifyRoi = function(roi) {
   return (as.integer(c(roi[["frameId"]], roi[["cellId"]], roi[["n"]], c(t(roi[["coords"]])))))
@@ -99,6 +100,7 @@ readTiffs = function(directory) {
 #' @param frame A TIFF image, as a matrix.
 #'
 #' @return The frame ID, width, height, and pixel values of the masked region, as an integer vector.
+#' 
 #' @export
 applyRoiMask = function(roi, frame) {
   intensities = matrix(ncol = 3)
