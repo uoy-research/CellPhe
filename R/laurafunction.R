@@ -1,3 +1,0 @@
-laura=function(){
-  print("goodbye")
-}
