@@ -9,7 +9,7 @@ for(i in c(1:length(mini_image)))
   justintensities<-subset(mini_image[[i]][c(4:length(mini_image[[i]])+3)], mini_image[[i]][c(4:length(mini_image[[i]])+3)] != -1)
   FOmean[i] = mean(justintensities)
   FOsd[i] = (var(justintensities))^(1/2)
-  FOskew[i] = e1071::skewness(justintensities)
+  FOskew[i] = e1071::skewness(justintensities, type = 2) ##Type 2 for calculating skewness, used in SAS and SPSS
 }
 
 
