@@ -22,15 +22,10 @@ copyFeatures = function(file, minframes){
 			missingframe[ind] = 0
 			cell_missing[[num]] = missingframe
 			# COPY EXISTING FEATURES FROM THE TABLE:
-			features = matrix(NA, nrow = nframes, ncol = 6)
-			colnames(features) = c("Vol", "Sph", "Vel", "Dis", "Trac", "D2T")
+			features = matrix(NA, nrow = nframes, ncol = 2)
+			colnames(features) = c("Vol", "Sph")
 			features[ind,1] = as.vector(ft[,9])
 			features[ind,2] = as.vector(ft[,13])
-			features[ind,3] = as.vector(ft[,19])
-			features[ind,4] = as.vector(ft[,18])
-			features[ind,5] = as.vector(ft[,22])
-			features[ind,6] = features[ind,4]/features[ind,5]
-			features[!is.finite(features[ind,6]),6]= 0	
 			cell_ft[[num]] = features
 			original_ID[[num]] = cellnums[i]
 		}	
@@ -46,7 +41,7 @@ copyFeatures = function(file, minframes){
 ## EXTRACT NEW FEATURES ## 
 extractFeatures = function(file, original_IDs, missing_frames, normalised_frames, min_frames){
 
-	shape_and_texture_features <- vector(mode = "list", length = length(missing_frames))
+	all_features <- vector(mode = "list", length = length(missing_frames))
 	centroids <- vector(mode = "list", length = length(missing_frames))
 	RandA <- vector(mode = "list", length = length(missing_frames))
 
@@ -60,6 +55,10 @@ extractFeatures = function(file, original_IDs, missing_frames, normalised_frames
 
 			# READ IN ROIS FOR SPECIFIC CELL:
 			rois = CellPhe::readRois(file, cellId = idj)
+
+			# MOVEMENT FEATURES:
+			mfeatures = matrix(NA, nrow = nframes, ncol = 4)
+			colnames(mfeatures) = c("Dis", "Trac", "D2T", "Vel")
 
 			# SHAPE FEATURES FROM BOUNDARIES:
 			bfeatures = matrix(NA, nrow = nframes, ncol = 13)
@@ -100,7 +99,38 @@ extractFeatures = function(file, original_IDs, missing_frames, normalised_frames
 						boundary_coordinates = sub_image_info[[7]]
 				        xcentres[i] = sub_image_info[[8]][1]
 				        ycentres[i] = sub_image_info[[8]][2]
+
+				        # MOVEMENT FEATURES
+
+				        if (i == 1) {
+				        	mfeatures[i,1] = 0.0
+				        	mfeatures[i,2] = 0.0
+				        	mfeatures[i,3] = 0.0
+				        	mfeatures[i,4] = 0.0
+					        # KEEP STARTING POSITION FOR DISPLACEMENT
+				        	startx = xcentres[i]
+				        	starty = ycentres[i]
+				        	keepframenum = 1
+				        }
+				        else {				        
+							# DISPLACEMENT
+				        	mfeatures[i,1] = sqrt((xcentres[i] - startx)*(xcentres[i] - startx) + (ycentres[i] - starty)*(ycentres[i] - starty))
+				        	# STORE DISTANCE BETWEEN FRAMES 
+				            dist = sqrt((xcentres[i] - xcentres[keepframenum])*(xcentres[i] - xcentres[keepframenum]) + (ycentres[i] - ycentres[keepframenum])*(ycentres[i] - ycentres[keepframenum]))
+							# TRACKLENGTH
+				        	mfeatures[i,2] = mfeatures[keepframenum,2] + dist
+							# FRAMEWISE DISPLACEMENT TO TRACKLENGTH RATIO
+				        	mfeatures[i,3] = mfeatures[i,1]/mfeatures[i,2]
+							mfeatures[!is.finite(mfeatures[i,3]),3]= 0	
+							# VELOCITY
+							framerate = 0.0028
+							numframes = i - keepframenum 
+				        	mfeatures[i,4] = framerate*dist/numframes
+				        	keepframenum = i
+				        }
+
 			       		# SHAPE FEATURES
+
 						vfc = varFromCentre(boundary_coordinates)		       		
 		       			# AVERAGE RADIUS
 						bfeatures[i,1] = vfc[1]		       		
@@ -126,7 +156,9 @@ extractFeatures = function(file, original_IDs, missing_frames, normalised_frames
     	        	    for (k in 1:4){
      		        		bfeatures[i,(k+9)] = polyClass(boundary_coordinates)[k]
             	    	}        
+
 	    	    		# TEXTURE FEATURES                
+
     	            	# FIRST ORDER FEATURES
 	        	        tfeatures[i,1] = mean(cell_pixels[,3])
     	        	    tfeatures[i,2] = sqrt(var(cell_pixels[,3]))
@@ -153,10 +185,10 @@ extractFeatures = function(file, original_IDs, missing_frames, normalised_frames
 			}
 			centroids[[num]] = cbind(xcentres, ycentres)
 			RandA[[num]] =  cbind(frameIds, bfeatures[,1], bfeatures[,6])
- 	      	shape_and_texture_features[[num]] = cbind(bfeatures, tfeatures)
+ 	      	all_features[[num]] = cbind(mfeatures, bfeatures, tfeatures)
      	}	
 	}
-	shape_and_texture_features = shape_and_texture_features[1:num]
+	all_features = all_features[1:num]
 	centroids = centroids[1:num]
 	RandA = RandA[1:num]
     meanr = rep(NA, num)
@@ -179,8 +211,8 @@ extractFeatures = function(file, original_IDs, missing_frames, normalised_frames
 	timeseries <- vector(mode = "list", length = num)
 	trajArea <- vector(mode = "list", length = num)
 	for (j in 1:num){
-    	timeseries[[j]] = cbind(shape_and_texture_features[[j]], cell_density[[j]])
-        colnames(timeseries[[j]]) = c(colnames(shape_and_texture_features[[j]]), "Den")
+    	timeseries[[j]] = cbind(all_features[[j]], cell_density[[j]])
+        colnames(timeseries[[j]]) = c(colnames(all_features[[j]]), "Den")
 		trajArea[[j]] = calculateTrajArea(centroids[[j]])
     }
    
@@ -194,15 +226,16 @@ varsFromTimeSeries = function(features, new_features, expname, originalIDs){
 	num = length(new_features[[2]])
 	timeseries <- vector(mode = "list", length = num)
 	
-    output = matrix(, nrow = num, ncol = 1111)
+    numcols = 1109 + ncol(features[[1]])
+    output = matrix(NA, nrow = num, ncol = numcols)
 	
 	for (j in 1:num){
      	timeseries[[j]] = cbind(features[[j]], new_features[[2]][[j]])
         numvars = dim(timeseries[[j]])[2]
  
-		stats <- matrix(, nrow = 3, ncol = numvars)
-		eleVars <- matrix(, nrow = 3, ncol = numvars)
-		wVars <- matrix(, nrow = 9, ncol = numvars)
+		stats <- matrix(NA, nrow = 3, ncol = numvars)
+		eleVars <- matrix(NA, nrow = 3, ncol = numvars)
+		wVars <- matrix(NA, nrow = 9, ncol = numvars)
 
         # Use first column of newfeatures which may have additional frames considered "missing"
         firstnewfeature = ncol(features[[j]])+1
@@ -212,10 +245,7 @@ varsFromTimeSeries = function(features, new_features, expname, originalIDs){
 		    # add NAs for original features
 		    timeseries[[j]][missingInd,1:ncol(features[[j]])] = NA
 			# INTERPOLATE MISSING VALUES
-            if (j == 32) print(timeseries[[j]])
 			timeseries[[j]] = apply(timeseries[[j]], 2, interpolate)
-            if (j == 32) print(timeseries[[j]])
- 
   			# CALCULATE SUMMARY STATISTICS 
 			stats = apply(timeseries[[j]][-missingInd,], 2, summaryStats)
   	    }
@@ -223,20 +253,15 @@ varsFromTimeSeries = function(features, new_features, expname, originalIDs){
   			# CALCULATE SUMMARY STATISTICS 
 			stats = apply(timeseries[[j]], 2, summaryStats)  	    
   	    }
-  	    
-         
-        print(c(j, dim(timeserirs[[j]])[1] ))      
-
+ 
   		# CALCULATE ASCENT, DESCENT AND MAX
   		eleVars = apply(timeseries[[j]], 2, elevationVars)
-        print(j)      
   		# CALCULATE VARIABLES FROM 3 LEVELS OF WAVELET DETAIL COEFFICIENTS
    		wVars = apply(timeseries[[j]], 2, waveVars)  
-        print(j)      
 
 	    vars = rbind(stats, eleVars, wVars)
 	    cn = colnames(vars)
-  		rn = c("mean", "std", "skew", "asc", "des", "max", "l1_mean", "l1_std", "l1_skew","l2_mean", "l2_std", "l2_skew", "l3_mean", "l3_std", "l3_skew")
+  		rn = c("mean", "std", "skew", "asc", "des", "max", "l1_asc", "l1_des", "l1_max","l2_asc", "l2_des", "l2_max", "l3_asc", "l3_des", "l3_max")
         names = rep(NA, length = (length(cn)*length(rn)+1))
         m = 1
         for (i in 1:length(cn)){
@@ -246,11 +271,14 @@ varsFromTimeSeries = function(features, new_features, expname, originalIDs){
             }
         }
         names[m] = "trajArea"
-	    output[j,1:1110] = as.vector(vars)
-        output[j,1111] = trajArea[[j]]
+	    output[j,1:(numcols - 1)] = as.vector(vars)
+        output[j,numcols] = trajArea[[j]]
         colnames(output) = names
         row.names(output) = paste(expname, originalIDs, sep = "_")
 	}
+    # delete the variables with zero variance Trac_des, Trac_l2_asc, Trac_l3_asc and D2T_max)
+    nonZeroVar = colnames(output)[which((colnames(output)!= "Trac_des") & (colnames(output)!= "Trac_l1_asc") & (colnames(output)!= "Trac_l2_asc") & (colnames(output)!= "Trac_l3_asc") & (colnames(output)!= "D2T_max"))]
+    output = subset(output, select = nonZeroVar)    
     return(output)
 }
 
@@ -771,25 +799,22 @@ calculateTrajArea <- function(centroids)
 interpolate <- function(v)
 {
 	nframes = length(v)
+  	while (is.na(v[nframes]) == T){
+    	nframes = nframes - 1
+    }
   	for (k in 1:nframes){
   		r = 0
     	if (is.na(v[k]) == T){
 	      	r = 1
      	  	while (((k+r) < nframes) & (is.na(v[k+r])) == T) r = r+1
    		}
-   		print(c(k,r, nframes ))
-   		if ((k+r-1) == nframes){
-     	 	nframes = nframes-r
-      	}
-   	    else {
-      		value = (v[k+r]-v[k-1])/(r+1)
-			if (r > 0){
-	        	for (m in 1:r){
-        			v[k-1+m] = v[k-1] + m*value
-      			}
+      	value = (v[k+r]-v[k-1])/(r+1)
+		if (r > 0){
+	        for (m in 1:r){
+        		v[k-1+m] = v[k-1] + m*value
       		}
-      		k = k+r
       	}
+      	k = k+r
    	}
   	return(v[1:nframes])
 }
@@ -844,7 +869,7 @@ waveVars <- function(v)
  	# CALCULATE WAVELET DETAIL COEFFICIENTS 
 	w = waveTran(v)
     for (i in 1:3){
- 		 wl =  c(wl, elevationVars(w[[i]]))
+ 		 wl =  c(wl, detVars(w[[i]]))
     }
     wl = wl[-1]
     return(wl)
