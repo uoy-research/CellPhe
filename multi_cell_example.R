@@ -3,7 +3,7 @@ library(CellPhe)
 # TODO I don't have access to this file
 #name = '18112020_A3_4'
 name = '05062019_B3_3'
-basedir <- sprintf("DATA/%s", name)
+basedir <- sprintf("data")
 imagedata =  sprintf("%s/%s_imagedata", basedir, name)
 input_feature_table =  sprintf("%s/%s_Phase-FullFeatureTable.csv", basedir, name)
 roi_files =  sprintf("%s/%s_Phase", basedir, name)

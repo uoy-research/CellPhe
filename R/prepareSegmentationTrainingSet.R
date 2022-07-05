@@ -15,8 +15,6 @@
 #' @return \code{correctsegdata} - Original feature table of ground truth correctly segmented cells plus synthetic segmentation errors if this was the undersampled class
 #' @return \code{segerrorlabels} - List of true class labels for the segmentation error class
 #' @return \code{correctseglabels} - List of true class labels for the correctly segmented class
-#'
-#' @examples prepareSegmentationTrainingSet(groundtruthsegerrors, groundtruthcorrectsegs)
 #' 
 #' @export
 #' 

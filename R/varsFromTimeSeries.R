@@ -5,8 +5,8 @@
 #' @param features TODO
 #' @param new_features TODO
 #' @param expname TODO
-#' @param originalIDS TODO
-#' @param return TODO
+#' @param originalIDs TODO
+#' @return TODO
 #' @export
 varsFromTimeSeries = function(features, new_features, expname, originalIDs){
 	trajArea = new_features[[1]]
@@ -72,7 +72,7 @@ varsFromTimeSeries = function(features, new_features, expname, originalIDs){
 
 summaryStats = function(v){
     m = mean(v)
-    std = sqrt(var(v))
+    std = sqrt(stats::var(v))
     skew = 0
     if (max(v) > 0) skew = e1071::skewness(v, type = 2)                
 

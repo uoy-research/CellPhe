@@ -9,7 +9,6 @@
 #' @return A data frame of separation values where column 1 is a list of variable indices, column 2 a list of variable names, and column 3 the corresponding separation scores
 #' @export
 #'
-#' @examples separationscores<-calculateSeparationScores(Untreated, Treated, 0.1)
 #' @export
 calculateSeparationScores<-function(group1data, group2data, threshold)
 {
@@ -20,7 +19,7 @@ calculateSeparationScores<-function(group1data, group2data, threshold)
   {
     separationscores[i,1]=i
     separationscores[i,2]=colnames(group1data)[i]
-    Vw = (((dim(group1data)[1]-1)*var(group1data[,i]))+((dim(group2data)[1]-1)*var(group2data[,i])))/(dim(group1data)[1]+dim(group2data)[1]-2)
+    Vw = (((dim(group1data)[1]-1)*stats::var(group1data[,i]))+((dim(group2data)[1]-1)*stats::var(group2data[,i])))/(dim(group1data)[1]+dim(group2data)[1]-2)
     overmean = (dim(group1data)[1]*mean(group1data[,i]) + (dim(group2data)[1]*mean(group2data[,i])))/(dim(group1data)[1]+dim(group2data)[1])
     Vb = (((dim(group1data)[1]*(mean(group1data[,i])-overmean)^2))+((dim(group2data)[1]*(mean(group2data[,i])-overmean)^2)))/(dim(group1data)[1]+dim(group2data)[1]-2)
     separation = Vb/Vw

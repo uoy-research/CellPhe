@@ -19,6 +19,3 @@ A data frame of separation values where column 1 is a list of variable indices, 
 \description{
 This function can be used to calculate the separation score for each variable, where a feature selection threshold can be defined by the user to identify discriminatory variables
 }
-\examples{
-separationscores<-calculateSeparationScores(Untreated, Treated, 0.1)
-}

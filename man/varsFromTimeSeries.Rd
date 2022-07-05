@@ -13,9 +13,10 @@ varsFromTimeSeries(features, new_features, expname, originalIDs)
 
 \item{expname}{TODO}
 
-\item{originalIDS}{TODO}
-
-\item{return}{TODO}
+\item{originalIDs}{TODO}
+}
+\value{
+TODO
 }
 \description{
 TODO

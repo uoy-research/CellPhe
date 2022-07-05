@@ -19,6 +19,3 @@ This function plots a dendogram of the obtained hierarchical clustering results,
 \description{
 This function performs hierarchical clustering on a given data set in order to identify \code{k} heterogeneous cell clusters, where \code{k} is pre-defined.
 }
-\examples{
-cellclusters<-identifyHeterogeneousClusters(cell1FeatureTable, cellIDs, 3)
-}

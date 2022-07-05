@@ -28,7 +28,3 @@ This function prepares a training set that can be used for classication of cell 
 for ground truth segmentation errors and correctly segmented cells (with smote data included for the previously undersampled class), as
 well as a list of ground truth labels for each class.
 }
-\examples{
-prepareSegmentationTrainingSet(groundtruthsegerrors, groundtruthcorrectsegs)
-
-}

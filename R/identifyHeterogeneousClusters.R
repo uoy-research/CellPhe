@@ -7,11 +7,9 @@
 #'
 #' @return This function plots a dendogram of the obtained hierarchical clustering results, and outputs a matrix where each column \code{n} lists the cells that were assigned cluster \code{n}.
 #' @export
-#'
-#' @examples cellclusters<-identifyHeterogeneousClusters(cell1FeatureTable, cellIDs, 3)
 identifyHeterogeneousClusters<-function(dataset, dataID, k)
 {
-  d<-dist(scale(dataset), method = "euclidean")
+  d<-stats::dist(scale(dataset), method = "euclidean")
   hierclust<-factoextra::hcut(d, hc_func = "agnes", hc_method = "ward.D", hc_metric = "euclidean", k = k)
   factoextra::fviz_dend(hierclust, show_labels = FALSE)+ggplot2::theme_classic(base_size = 20)
   

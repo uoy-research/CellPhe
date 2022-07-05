@@ -7,7 +7,7 @@
 #' 
 #' @return A matrix containing full feature table data for the passed cell ID.
 prepareFeatureTable = function(featureTableFile, cellId) {
-  featureTableData = read.csv(featureTableFile, check.names = FALSE, skip = 1)
+  featureTableData = utils::read.csv(featureTableFile, check.names = FALSE, skip = 1)
   colnames(featureTableData) = sapply(names(featureTableData), function (name) { gsub(' \\(.+$', '', name) }, USE.NAMES = FALSE)
   return (as.matrix(subset(featureTableData, featureTableData[["Tracking ID"]] == cellId)))
 }
@@ -21,7 +21,7 @@ prepareFeatureTable = function(featureTableFile, cellId) {
 #'
 #' @return A list of ROI objects, including additional parameters `cellId` and `frameId`
 readRois = function(directory, cellId) {
-  roiFileList = list.files(directory, pattern = paste('.*-', cellId, '.roi', sep = ''), full.name = TRUE)
+  roiFileList = list.files(directory, pattern = paste('.*-', cellId, '.roi', sep = ''), full.names = TRUE)
   orderedRoiFileList = roiFileList[order(as.numeric(sub("([0-9]+)\\-.*\\.roi", "\\1", basename(roiFileList))))]
   rois = lapply(orderedRoiFileList, RImageJROI::read.ijroi)
   rois = lapply(rois, function(roi) {roi[["cellId"]] = as.numeric(sub(".*-", "", roi[["name"]])); roi[["frameId"]] = as.numeric(sub("-.*", "", roi[["name"]])); return (roi)})
@@ -78,7 +78,7 @@ normaliseImage = function(values, lower, upper) {
 #'
 #' @export
 readTiffs = function(directory) {
-  tiffFileList = list.files(directory, pattern = "*.tif$", full.name = TRUE)
+  tiffFileList = list.files(directory, pattern = "*.tif$", full.names = TRUE)
   orderedTiffFileList = tiffFileList[order(as.numeric(sub(".*-([0-9]{4})\\.tif", "\\1", basename(tiffFileList))))]
 
   return (lapply(tiffFileList, tiff::readTIFF))
@@ -105,7 +105,7 @@ applyRoiMask = function(roi, frame) {
     }
   }
 
-  intensities = na.omit(intensities)
+  intensities = stats::na.omit(intensities)
   attributes(intensities)[["na.action"]] = NULL
   
   intensities[ , 1] = intensities[ , 1] - roi[["left"]]
@@ -141,7 +141,7 @@ copyFeatures = function(file, minframes){
 	# READ IN FIULL FEATURE TABLE:
 	all = readLines(file)
 	skip_first = all[-1]
-	full_ft = read.csv(textConnection(skip_first), header = TRUE, stringsAsFactors = FALSE)
+	full_ft = utils::read.csv(textConnection(skip_first), header = TRUE, stringsAsFactors = FALSE)
     cellnums = as.numeric(levels(as.factor(full_ft[,3])))
 	cell_ft <- vector(mode = "list", length = length(cellnums))
 	cell_missing <- vector(mode = "list", length = length(cellnums))
@@ -201,7 +201,7 @@ extractFeatures <- function(file, original_IDs, missing_frames, normalised_frame
 			idj = original_IDs[[num]]
 
 			# READ IN ROIS FOR SPECIFIC CELL:
-			rois = CellPhe::readRois(file, cellId = idj)
+			rois = readRois(file, cellId = idj)
 
 			# MOVEMENT FEATURES:
 			mfeatures = matrix(NA, nrow = nframes, ncol = 4)
@@ -308,7 +308,7 @@ extractFeatures <- function(file, original_IDs, missing_frames, normalised_frame
 
     	            	# FIRST ORDER FEATURES
 	        	        tfeatures[i,1] = mean(cell_pixels[,3])
-    	        	    tfeatures[i,2] = sqrt(var(cell_pixels[,3]))
+    	        	    tfeatures[i,2] = sqrt(stats::var(cell_pixels[,3]))
         	        	tfeatures[i,3] = e1071::skewness(cell_pixels[,3], type = 2)                
 						# CALCULATE COOCCURRENCES MATRICES
 						cooccurrence_levels = 10
@@ -395,7 +395,7 @@ subImageInfo = function(roi, frame) {
 
     # IDENTIFY INTERIOR PIXELS (WITHIN, BUT NOT ON THE CELL BOUNDARY)
 	intensities = ptinpoly::pip2d(newbcs,test[,1:2])
-    intensities = na.omit(intensities)
+    intensities = stats::na.omit(intensities)
 
 	cellpixels = test[which(intensities != -1),]
 	interiorpixels = test[which(intensities == 1),]
@@ -417,9 +417,9 @@ varFromCentre = function(bc){
     y = bc$y[j]
     dist[j] = sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy))
   }
-  vdist = var(dist)
+  vdist = stats::var(dist)
   rad = mean(dist)
-  return(c(rad, var(dist)))
+  return(c(rad, stats::var(dist)))
 }
 
 curvature = function(bc, gap){
@@ -451,7 +451,7 @@ curvature = function(bc, gap){
 minBox = function(bc){
    # FIND MAXIMUM DISTANCE BETWEEN ANY TWO BOUNDARY POINTS 
    d = cbind(bc$x, bc$y)
-   dd = as.matrix(dist(d))
+   dd = as.matrix(stats::dist(d))
    k1 = which(dd == max(dd), arr.ind = T)[1]
    k2 = which(dd == max(dd), arr.ind = T)[2]
    keepx1 = bc$x[k1];
@@ -483,10 +483,10 @@ polyClass = function(bc){
 	  Csq = apply(mat02, 1, sqreucdist)
 	  squaredLengths = rbind(Asq, Bsq, Csq)
       maxLength = max(sqrt(Asq))
-      varLength = var(sqrt(Asq))
+      varLength = stats::var(sqrt(Asq))
       angles = apply(squaredLengths, 2, polyAngle)  
 	  minAngle = min(angles)
-	  varAngle = var(angles)
+	  varAngle = stats::var(angles)
       output = c(maxLength, minAngle, varAngle, varLength)
       return(output)
 }
@@ -495,7 +495,7 @@ polygon = function(bc){
 	thresh = 2.5
  	# FIND MAXIMUM DISTANCE FROM FIRST BOUNDARY POINT
 	d = cbind(bc$x, bc$y)
-	dd = as.matrix(dist(d))
+	dd = as.matrix(stats::dist(d))
 	indkeep = which(dd[,1] == max(dd[,1]))
 	numpoints = 2
 	pointArray = as.vector(c(1, indkeep))
@@ -520,7 +520,7 @@ polygon = function(bc){
 	      		x0 = bc$x[(pointArray[k - 1]+1): (pointArray[k]-1)]
 	        	y0 = bc$y[(pointArray[k - 1]+1): (pointArray[k]-1)]
 	        	v = cbind(x0,y0)
-  				v = na.omit(v)
+  				v = stats::na.omit(v)
 	        	dist = apply(v, 1, pointttolinedist, lcoeffs)
   		    	indkeep = which(dist == max(dist))		    
 		    	if (max(dist) > thresh){
@@ -547,7 +547,7 @@ polygon = function(bc){
 	 	    x0 = bc$x[(pointArray[numpoints]+1): bc$length]
 		    y0 = bc$y[(pointArray[numpoints]+1): bc$length]
 	    	v = cbind(x0,y0)
- 			v = na.omit(v)
+ 			v = stats::na.omit(v)
 	    	dist = apply(v, 1, pointttolinedist, lcoeffs)
 			indkeep = which(dist == max(dist))
 			if (max(dist) > thresh){
@@ -761,12 +761,12 @@ calculateHaralickFeatures = function(glcm)
 
 intensityQuantiles = function(bc, intensities)
 {
-  	qs = quantile(intensities[,3], probs= c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
+  	qs = stats::quantile(intensities[,3], probs= c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
   	quantileVars <- vector(mode = "list", length = length(qs))
   	for (i in 1:length(qs)){
 		s = subset(intensities, intensities[,3] >= qs[i])
-		d = as.vector(dist(s[,1:2]))
-        quantileVars[[i]] = var(d)/mean(d)
+		d = as.vector(stats::dist(s[,1:2]))
+        quantileVars[[i]] = stats::var(d)/mean(d)
  	}
     return(quantileVars)
 }
@@ -831,8 +831,8 @@ densityCalc = function(jj, centroids, RandA, avrad){
 
 calculateTrajArea <- function(centroids)
 {
-  xCentres<-na.omit(centroids[,1])
-  yCentres<-na.omit(centroids[,2])
+  xCentres<-stats::na.omit(centroids[,1])
+  yCentres<-stats::na.omit(centroids[,2])
   numframes = length(xCentres)
   trajArea = ((max(xCentres)-min(xCentres))*(max(yCentres)-min(yCentres)))/numframes
   return(trajArea)
