@@ -6,8 +6,6 @@
 #' @param cellId The tracking ID of the cell you want to evaluate, as an integer.
 #' 
 #' @return A matrix containing full feature table data for the passed cell ID.
-#'
-#' @export
 prepareFeatureTable = function(featureTableFile, cellId) {
   featureTableData = read.csv(featureTableFile, check.names = FALSE, skip = 1)
   colnames(featureTableData) = sapply(names(featureTableData), function (name) { gsub(' \\(.+$', '', name) }, USE.NAMES = FALSE)
@@ -22,8 +20,6 @@ prepareFeatureTable = function(featureTableFile, cellId) {
 #' @param cellId The tracking ID of the cell you want to evaluate, as an integer.
 #'
 #' @return A list of ROI objects, including additional parameters `cellId` and `frameId`
-#'
-#' @export
 readRois = function(directory, cellId) {
   roiFileList = list.files(directory, pattern = paste('.*-', cellId, '.roi', sep = ''), full.name = TRUE)
   orderedRoiFileList = roiFileList[order(as.numeric(sub("([0-9]+)\\-.*\\.roi", "\\1", basename(roiFileList))))]
@@ -50,8 +46,6 @@ simplifyRoi = function(roi) {
 #' @param rois A collection of ImageJ ROI data, as a list.
 #'
 #' @return A collection of simplified ROI data, as a list of integer vectors.
-#'
-#' @export
 prepareBoundaryCoordinates = function(rois) {
   return (lapply(rois, simplifyRoi))
 }
@@ -131,8 +125,6 @@ applyRoiMask = function(roi, frame) {
 #' @param frames A collection of TIFF images, as a list of matrices.
 #'
 #' @return A collection of frame IDs, widths, heights, and pixel values for each TIFF image, as a list of integer vectors.
-#'
-#' @export
 prepareMiniImage = function(rois, frames) {
   lapply(rois, function(roi) {applyRoiMask(roi, frames[[roi[["frameId"]]]])})
 }
