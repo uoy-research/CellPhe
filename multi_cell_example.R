@@ -1,5 +1,4 @@
-library('Rcpp')
-library('CellPhe')
+library(CellPhe)
 
 # TODO I don't have access to this file
 #name = '18112020_A3_4'
@@ -15,6 +14,7 @@ frames = CellPhe::readTiffs(imagedata)
 normalised_frames = lapply(frames, CellPhe::normaliseImage, lower = 0, upper = 255)
 
 # COPY EXISTING FEATURES FOR EACH CELL TRACKED FOR MORE THAN MIN_FRAMES AND FIND MISSING FRAMES:
+# TODO USER MIGHT WANT TO DO THEIR OWN THING HERE FOR THEIR OWN DATASET
 min_frames = 50
 feature_table = CellPhe::copyFeatures(input_feature_table, min_frames)
 numcells_over_thresh = feature_table[[1]]
