@@ -149,6 +149,10 @@ interpolate <- function(v)
   	while (is.na(v[nframes]) == T){
     	nframes = nframes - 1
     }
+    while (is.na(v[1]) == T){
+        v = v[-1]
+        nframes = nframes - 1
+    }
   	for (k in 1:nframes){
   		r = 0
     	if (is.na(v[k]) == T){

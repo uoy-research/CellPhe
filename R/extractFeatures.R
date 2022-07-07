@@ -248,8 +248,7 @@ extractFeatures <- function(file, original_IDs, missing_frames, normalised_frame
 				        ycentres[i] = sub_image_info[[8]][2]
 
 				        # MOVEMENT FEATURES
-
-				        if (i == 1) {
+                        if ((i == 1) | ((missing_frames[[j]][i] != 1) & (sum(missing_frames[[j]][1:i]) == (i-1)))) {
 				        	mfeatures[i,1] = 0.0
 				        	mfeatures[i,2] = 0.0
 				        	mfeatures[i,3] = 0.0
