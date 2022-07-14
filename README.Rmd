@@ -49,7 +49,6 @@ called 05062019_B3_3_imagedata are expected.
 ```{r}
 imagedata =  sprintf("%s/%s_imagedata", basedir, trial_name)
 frames = readTiffs(imagedata)
-
 ```
 
 Optionally, if there are already features available for each cell tracked 
@@ -71,9 +70,9 @@ tracked cell (copied to 'features' below).
 ![image](https://user-images.githubusercontent.com/12910047/178154414-3144549d-2c62-42cd-b624-828f7638f7eb.png)
 
 ```{r}
+# COPY PHASE FEATURES FROM PHASEFOCUS FEATURE TABLE FOR EACH CELL TRACKED FOR MORE THAN MIN_FRAMES AND FIND MISSING FRAMES:
 input_feature_table =  sprintf("%s/%s_Phase-FullFeatureTable.csv", basedir, trial_name)
-min_frames = 50
-feature_table = copyFeatures(input_feature_table, min_frames)
+feature_table = copyPhaseFeatures(input_feature_table, 50)
 original_IDs = feature_table[[1]]
 missing_frames = feature_table[[2]]
 features = feature_table[[3]]

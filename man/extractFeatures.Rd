@@ -2,30 +2,42 @@
 % Please edit documentation in R/extractFeatures.R
 \name{extractFeatures}
 \alias{extractFeatures}
-\title{TODO}
+\title{Calculates cell features from timelapse videos}
 \usage{
-extractFeatures(
-  file,
-  original_IDs,
-  missing_frames,
-  normalised_frames,
-  min_frames
-)
+extractFeatures(file, original_IDs, missing_frames, frames, min_frames)
 }
 \arguments{
-\item{file}{TODO}
+\item{file}{A path to a directory containing multiple Report Object Instance
+(ROI) files named in the format \code{cellid}-\code{frameid}.roi}
 
-\item{original_IDs}{TODO}
+\item{original_IDs}{A list of cell IDs that correspond to the files in \code{file}.}
 
-\item{missing_frames}{TODO}
+\item{missing_frames}{A list with length equal to the number of cells that are tracked
+for at least \code{min_frames} frames. Each entry is a vector of 1s and 0s with length equal to the
+number of frames the cell is tracked over, where a missing frame has a 1
+and a non-missing frame 0.}
 
-\item{normalised_frames}{TODO}
+\item{frames}{The frames themselves, a list of TIFF images.}
 
-\item{min_frames}{TODO}
+\item{min_frames}{The minimum number of frames a cell must be tracked for to
+be included in the output features.}
 }
 \value{
-TODO
+A list with 2 elements, each of which is a list with length equal to
+the number of cells tracked for at least \code{min_frames}. The first element
+contains the trajectory measures for each cell and the second element
+contains the matrix of feature time series for each cell.
 }
 \description{
-TODO
+Calculates 1109 features related to size, shape, texture and movement for each
+cell on every non-missing frame, as well as the cell density around each
+cell on each frame and a measure describing the trajectory of the cell
+over all frames.
+}
+\details{
+Reads in information on cell boundaries from ROI files, the cell identifiers
+from the original tracking (i.e. before cells tracked for less than
+min_frames were removed), original_IDs, information on missing frames for
+each cell in a list of vectors with missing frames indicated by 1 and
+non-missing frames by 0, missing_frames, and the normalised images for every frame, normalised_frames.
 }

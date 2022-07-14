@@ -1,12 +1,16 @@
-#' TODO
+#' Calculate variables from the time series of each extracted cell feature.
 #'
-#' TODO
-#' 
-#' @param features TODO
-#' @param new_features TODO
-#' @param expname TODO
-#' @param originalIDs TODO
-#' @return TODO
+#' Reads in the time series for any pre-existing features as well as the 
+#' output of \code{extractFeatures}. Variables are calculated from the time series, 
+#' providing both summary statistics and indicators of time-series behaviour 
+#' at different levels of detail obtained via wavelet analysis. Name is an 
+#' experiment identifier, used together with the cell identifiers in 
+#' original_IDs to provide rownames in the output matrix.
+#' @param features A list of matrices, the same as the output from \code{copyPhaseFeatures}
+#' @param new_features A list of two lists, the same as the output from \code{copyFeatures}
+#' @param expname A experiment identifier as a string
+#' @param originalIDs A list of integers
+#' @return A matrix with cells in rows and variables describing their behaviour over time in columns.
 #' @export
 varsFromTimeSeries = function(features, new_features, expname, originalIDs){
 	trajArea = new_features[[1]]
@@ -14,7 +18,7 @@ varsFromTimeSeries = function(features, new_features, expname, originalIDs){
 	num = length(new_features[[2]])
 	timeseries <- vector(mode = "list", length = num)
 	
-    numcols = 1109 + ncol(features[[1]])
+	  numcols <- 1109 + ncol(features[[1]])
     output = matrix(NA, nrow = num, ncol = numcols)
 	
 	for (j in 1:num){
@@ -59,14 +63,11 @@ varsFromTimeSeries = function(features, new_features, expname, originalIDs){
             }
         }
         names[m] = "trajArea"
-	    output[j,1:(numcols - 1)] = as.vector(vars)
+	    output[j,1:(numcols-1)] = as.vector(vars)
         output[j,numcols] = trajArea[[j]]
         colnames(output) = names
         row.names(output) = paste(expname, originalIDs, sep = "_")
 	}
-    # delete the variables with zero variance Trac_des, Trac_l2_asc, Trac_l3_asc and D2T_max)
-    nonZeroVar = colnames(output)[which((colnames(output)!= "Trac_des") & (colnames(output)!= "Trac_l1_asc") & (colnames(output)!= "Trac_l2_asc") & (colnames(output)!= "Trac_l3_asc") & (colnames(output)!= "D2T_max"))]
-    output = subset(output, select = nonZeroVar)    
     return(output)
 }
 

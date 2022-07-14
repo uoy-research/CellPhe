@@ -2,22 +2,27 @@
 % Please edit documentation in R/varsFromTimeSeries.R
 \name{varsFromTimeSeries}
 \alias{varsFromTimeSeries}
-\title{TODO}
+\title{Calculate variables from the time series of each extracted cell feature.}
 \usage{
 varsFromTimeSeries(features, new_features, expname, originalIDs)
 }
 \arguments{
-\item{features}{TODO}
+\item{features}{A list of matrices, the same as the output from \code{copyPhaseFeatures}}
 
-\item{new_features}{TODO}
+\item{new_features}{A list of two lists, the same as the output from \code{copyFeatures}}
 
-\item{expname}{TODO}
+\item{expname}{A experiment identifier as a string}
 
-\item{originalIDs}{TODO}
+\item{originalIDs}{A list of integers}
 }
 \value{
-TODO
+A matrix with cells in rows and variables describing their behaviour over time in columns.
 }
 \description{
-TODO
+Reads in the time series for any pre-existing features as well as the
+output of \code{extractFeatures}. Variables are calculated from the time series,
+providing both summary statistics and indicators of time-series behaviour
+at different levels of detail obtained via wavelet analysis. Name is an
+experiment identifier, used together with the cell identifiers in
+original_IDs to provide rownames in the output matrix.
 }

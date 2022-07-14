@@ -129,19 +129,31 @@ prepareMiniImage = function(rois, frames) {
   lapply(rois, function(roi) {applyRoiMask(roi, frames[[roi[["frameId"]]]])})
 }
 
-#' Copy Features
+#' Copy features from an existing PhaseFocus feature table
 #' 
-#' TODO
+#' Copy chosen values from a feature table of pre-calculated features as output
+#' by PhaseFocus software. Only the values for the features volume and 
+#' sphericity, which require phase information, are copied as all other features
+#' can be calculated by \code{extractFeatures}. Only cells that are tracked for
+#' a minimum of \code{minframes} are copied into the new feature table. 
 #' 
-#' @param file TODO
-#' @param minframes TODO
-#' @return TODO
+#' @param file The filepath to a CSV file containing features output by PhaseFocus software.
+#' @inheritParams copyFeatures
+#' @return A list of length N, where N is the number of cells tracked for at 
+#' least \code{minframes}, with the following entries:
+#' \itemize{
+#'   \item{\code{original_ID}: the cell ID from the input file}
+#'   \item{\code{cell_missing}: a vector of 1s and 0s with length equal to the 
+#'   number of frames the cell is tracked over, where a missing frame has a 1
+#'   and a non-missing frame 0}
+#'   \item{\code{cell_ft}: a matrix of copied features for each frame of each cell}
+#' }
 #' @export
-copyFeatures = function(file, minframes){
-	# READ IN FIULL FEATURE TABLE:
+copyPhaseFeatures = function(file, minframes){
+	# READ IN FULL FEATURE TABLE:
 	all = readLines(file)
 	skip_first = all[-1]
-	full_ft = utils::read.csv(textConnection(skip_first), header = TRUE, stringsAsFactors = FALSE)
+	full_ft = read.csv(textConnection(skip_first), header = TRUE, stringsAsFactors = FALSE)
     cellnums = as.numeric(levels(as.factor(full_ft[,3])))
 	cell_ft <- vector(mode = "list", length = length(cellnums))
 	cell_missing <- vector(mode = "list", length = length(cellnums))
@@ -172,25 +184,101 @@ copyFeatures = function(file, minframes){
 	cell_missing = cell_missing[1:num]
 	cell_ft = cell_ft[1:num]
 	original_ID = original_ID[1:num]
-	cell_info = list(num, original_ID, cell_missing, cell_ft)
+	cell_info = list(original_ID, cell_missing, cell_ft)
 	return(cell_info)
 }
 
-#' TODO
-#'
-#' TODO
-#' @param file TODO
-#' @param original_IDs TODO
-#' @param missing_frames TODO
-#' @param normalised_frames TODO
-#' @param min_frames TODO
-#' @return TODO
+#' Copy features from a pre-existing feature table
+#' 
+#' Copy chosen values from an existing table of pre-calculated features.
+#' 
+#' @param file A data frame comprising pre-calculated features (in columns) 
+#' for each frame of each cell (in rows). The first column should give the 
+#' tracked cell identifier and the second should give the frame number.
+#' All other columns are considered to be features.
+#' @param minframes The minimum number of frames a cell must be tracked for to
+#' be included in the output features.
+#' @return A list of length N, where N is the number of cells tracked for at 
+#' least \code{minframes}, with the following entries:
+#' \itemize{
+#'   \item{\code{original_ID}: the cell ID from the input file}
+#'   \item{\code{cell_missing}: a vector of 1s and 0s with length equal to the 
+#'   number of frames the cell is tracked over, where a missing frame has a 1
+#'   and a non-missing frame 0}
+#'   \item{\code{cell_ft}: a matrix of copied features for each frame of each cell}
+#' }
 #' @export
-extractFeatures <- function(file, original_IDs, missing_frames, normalised_frames, min_frames){
+copyFeatures = function(file, minframes) {
+	# READ IN FULL FEATURE TABLE:
+	full.df = as.data.frame(read.csv(file, header = TRUE))
+  cellnums = full.df[,1]
+	cell_ft <- vector(mode = "list", length = length(cellnums))
+	cell_missing <- vector(mode = "list", length = length(cellnums))
+	original_ID <- vector(mode = "list", length = length(cellnums))
+
+    num = 0
+    for (i in 1:length(cellnums)){
+  		ft.df = full.df[which(full.df[,1] == cellnums[i]),]
+		framenums = as.vector(ft.df[,2])
+		nframes = max(framenums)-min(framenums)+1
+		if (nframes > minframes){
+			num = num + 1
+			missingframe = rep(1,nframes)
+			ind = framenums-min(framenums)+1
+        	if (length(ind) > 0) missingframe[ind] = 0
+			missingframe[ind] = 0
+			cell_missing[[num]] = missingframe
+			# COPY EXISTING FEATURES FROM THE TABLE:
+			numfeatures = ncol(ft.df) - 2
+			features = matrix(NA, nrow = nframes, ncol = 2)
+			features[ind,1:numfeatures] = as.matrix(ft.df[,3:ncol(ft.df)])
+			cell_ft[[num]] = features
+			original_ID[[num]] = cellnums[i]
+		}	
+		
+	}
+	cell_missing = cell_missing[1:num]
+	cell_ft = cell_ft[1:num]
+	original_ID = original_ID[1:num]
+	cell_info = list(original_ID, cell_missing, cell_ft)
+	return(cell_info)
+}
+
+#' Calculates cell features from timelapse videos
+#' 
+#' Calculates 1109 features related to size, shape, texture and movement for each
+#' cell on every non-missing frame, as well as the cell density around each
+#' cell on each frame and a measure describing the trajectory of the cell 
+#' over all frames.
+#' 
+#' @details 
+#' Reads in information on cell boundaries from ROI files, the cell identifiers
+#' from the original tracking (i.e. before cells tracked for less than 
+#' min_frames were removed), original_IDs, information on missing frames for 
+#' each cell in a list of vectors with missing frames indicated by 1 and 
+#' non-missing frames by 0, missing_frames, and the normalised images for every frame, normalised_frames.
+#' @param file A path to a directory containing multiple Report Object Instance
+#' (ROI) files named in the format \code{cellid}-\code{frameid}.roi
+#' @param original_IDs A list of cell IDs that correspond to the files in \code{file}.
+#' @param missing_frames A list with length equal to the number of cells that are tracked
+#' for at least \code{min_frames} frames. Each entry is a vector of 1s and 0s with length equal to the
+#' number of frames the cell is tracked over, where a missing frame has a 1
+#' and a non-missing frame 0.
+#' @param frames The frames themselves, a list of TIFF images.
+#' @param min_frames The minimum number of frames a cell must be tracked for to
+#' be included in the output features.
+#' @return A list with 2 elements, each of which is a list with length equal to
+#' the number of cells tracked for at least \code{min_frames}. The first element 
+#' contains the trajectory measures for each cell and the second element 
+#' contains the matrix of feature time series for each cell.
+#' @export
+extractFeatures = function(file, original_IDs, missing_frames, frames, min_frames){
 
 	all_features <- vector(mode = "list", length = length(missing_frames))
 	centroids <- vector(mode = "list", length = length(missing_frames))
 	RandA <- vector(mode = "list", length = length(missing_frames))
+
+    normalised_frames = lapply(frames, normaliseImage, lower = 0, upper = 255)
 
     num = 0
     for (j in 1:length(missing_frames)){
@@ -228,7 +316,7 @@ extractFeatures <- function(file, original_IDs, missing_frames, normalised_frame
 			for (i in 1:nframes){
 				if (missing_frames[[j]][i] != 1){
 					nf = nf+1
-					frame = normalised_frames[[rois[[nf]][["frameId"]]]]
+					frame = normalised_frames[[rois[[nf]]$frameId]]
 					roi = rois[[nf]]
 					# check whether cell too small in either direction
 					w = roi$xrange[2]- roi$xrange[1]+1
@@ -248,7 +336,8 @@ extractFeatures <- function(file, original_IDs, missing_frames, normalised_frame
 				        ycentres[i] = sub_image_info[[8]][2]
 
 				        # MOVEMENT FEATURES
-                        if ((i == 1) | ((missing_frames[[j]][i] != 1) & (sum(missing_frames[[j]][1:i]) == (i-1)))) {
+
+                if ((i == 1) | ((missing_frames[[j]][i] != 1) & (sum(missing_frames[[j]][1:i]) == (i-1)))) {
 				        	mfeatures[i,1] = 0.0
 				        	mfeatures[i,2] = 0.0
 				        	mfeatures[i,3] = 0.0
@@ -368,21 +457,9 @@ extractFeatures <- function(file, original_IDs, missing_frames, normalised_frame
 subImageInfo = function(roi, frame) {
 	sub_image = frame[(roi$yrange[1]+1):(roi$yrange[2]+1),(roi$xrange[1]+1):(roi$xrange[2]+1)]
 
-    width = roi[["width"]] + 1
-    height = roi[["height"]] + 1
-	n = 1
-	test = matrix(nrow = width*height, ncol = 3)
-	for (i in 1:width){
- 		for (j in 1:height){
- 		    test[n,] = c(i, j, sub_image[j,i])
-     		n = n+1
- 		}
- 	}
-
-    # CELL CENTROID
-    cx = mean(roi$coords[,1])
-    cy = mean(roi$coords[,2])
-    centroid = cbind(cx, cy)
+    width = roi$xrange[2]- roi$xrange[1]+1
+    height = roi$yrange[2]- roi$yrange[1]+1
+	pixel_type = as.list(rep(1, width*height))
 
     # EXTRACT BOUNDARY PIXELS
     length = roi$n
@@ -392,16 +469,66 @@ subImageInfo = function(roi, frame) {
     xycoords = list(length, x, y)
     names(xycoords) <- c("length", "x", "y")  
 
-    # IDENTIFY INTERIOR PIXELS (WITHIN, BUT NOT ON THE CELL BOUNDARY)
-	intensities = ptinpoly::pip2d(newbcs,test[,1:2])
-    intensities = stats::na.omit(intensities)
+    # CELL CENTROID
+    cx = mean(roi$coords[,1])
+    cy = mean(roi$coords[,2])
+    centroid = cbind(cx, cy)
 
-	cellpixels = test[which(intensities != -1),]
-	interiorpixels = test[which(intensities == 1),]
+    # ADD BOUNDARY TO PIXEL_TYPE
+	pixel_type = as.list(rep(1, width*height))
+    inds <- (xycoords[[2]]-1)*height + xycoords[[3]]
+    pixel_type[inds] = 0
+
+    # FILL IN MASK FROM EDGES OF IMAGE
+    matpix_type <- matrix(unlist(pixel_type), nrow = height, ncol = width)   
+    matpix_type = apply(matpix_type, 2, fill_mask)
+    matpix_type = t(apply(matpix_type, 1, fill_mask))
+  
+    # CHECK NEIGHBOURS OF MASK PIXELS
+    n = 1
+    while (n >0){
+    	n = 0
+        for (j in 2: (height-1)){
+            for (i in 2:(width-1)){
+               if (matpix_type[j, i] == -1){
+                  if (matpix_type[j-1, i] == 1){
+                    matpix_type[j-1, i] = -1
+                    n = 1
+                  }
+                  if (matpix_type[j, i-1] == 1){ 
+                     matpix_type[j, i-1] = -1
+                    n = 1
+                  }
+                  if (matpix_type[j, i+1] == 1){
+                     matpix_type[j, i+1] = -1
+                    n = 1
+                  }
+                  if (matpix_type[j+1, i] == 1){
+                     matpix_type[j+1, i] = -1
+                    n = 1
+                  }
+               }
+            }
+        }
+    }
+  
+	n = 1
+	intensities = matrix(nrow = width*height, ncol = 4)
+	for (i in 1:width){
+ 		for (j in 1:height){
+ 		    intensities[n,] = c(i, j, sub_image[j,i], matpix_type[j,i])
+     		n = n+1
+ 		}
+ 	}
+  
+  
+    # IDENTIFY INTERIOR PIXELS (WITHIN, BUT NOT ON THE CELL BOUNDARY)
+	cellpixels = intensities[which(intensities[,4] != -1),1:3]
+	interiorpixels = intensities[which(intensities[,4] == 1),1:3]
  	
     # MASK NON-CELL PIXELS
     mask = rep(0, width*height)
-    mask[which(intensities >= 0)] = 1
+    mask[which(intensities[,4] >= 0)] = 1
     mask = matrix(mask, nrow = height)
 	
     return (list(width, height, sub_image, mask, cellpixels, interiorpixels, xycoords, centroid))
@@ -835,4 +962,13 @@ calculateTrajArea <- function(centroids)
   numframes = length(xCentres)
   trajArea = ((max(xCentres)-min(xCentres))*(max(yCentres)-min(yCentres)))/numframes
   return(trajArea)
+}
+
+fill_mask = function(v){
+   inds = which(v == 0) 
+   firstzero = inds[1]
+   lastzero = inds[length(inds)]
+   if (v[1] != 0) v[1:(firstzero-1)] = -1
+   if (v[length(v)] != 0) v[(lastzero+1):length(v)] = -1
+   return(v)
 }
