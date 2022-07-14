@@ -192,7 +192,7 @@ copyPhaseFeatures = function(file, minframes){
 #' 
 #' Copy chosen values from an existing table of pre-calculated features.
 #' 
-#' @param file A data frame comprising pre-calculated features (in columns) 
+#' @param df A data frame comprising pre-calculated features (in columns) 
 #' for each frame of each cell (in rows). The first column should give the 
 #' tracked cell identifier and the second should give the frame number.
 #' All other columns are considered to be features.
@@ -208,17 +208,15 @@ copyPhaseFeatures = function(file, minframes){
 #'   \item{\code{cell_ft}: a matrix of copied features for each frame of each cell}
 #' }
 #' @export
-copyFeatures = function(file, minframes) {
-	# READ IN FULL FEATURE TABLE:
-	full.df = as.data.frame(read.csv(file, header = TRUE))
-  cellnums = full.df[,1]
+copyFeatures = function(df, minframes) {
+  cellnums = df[,1]
 	cell_ft <- vector(mode = "list", length = length(cellnums))
 	cell_missing <- vector(mode = "list", length = length(cellnums))
 	original_ID <- vector(mode = "list", length = length(cellnums))
 
     num = 0
     for (i in 1:length(cellnums)){
-  		ft.df = full.df[which(full.df[,1] == cellnums[i]),]
+  		ft.df = df[which(df[,1] == cellnums[i]),]
 		framenums = as.vector(ft.df[,2])
 		nframes = max(framenums)-min(framenums)+1
 		if (nframes > minframes){
