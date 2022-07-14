@@ -270,7 +270,7 @@ copyFeatures = function(df, minframes) {
 #' contains the trajectory measures for each cell and the second element 
 #' contains the matrix of feature time series for each cell.
 #' @export
-extractFeatures = function(file, original_IDs, missing_frames, frames, min_frames){
+extractFeatures = function(file, original_IDs, missing_frames, frames, min_frames, framerate=1){
 
 	all_features <- vector(mode = "list", length = length(missing_frames))
 	centroids <- vector(mode = "list", length = length(missing_frames))
@@ -356,7 +356,6 @@ extractFeatures = function(file, original_IDs, missing_frames, frames, min_frame
 				        	mfeatures[i,3] = mfeatures[i,1]/mfeatures[i,2]
 							mfeatures[!is.finite(mfeatures[i,3]),3]= 0	
 							# VELOCITY
-							framerate = 0.0028
 							numframes = i - keepframenum 
 				        	mfeatures[i,4] = framerate*dist/numframes
 				        	keepframenum = i

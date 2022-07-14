@@ -110,7 +110,7 @@ roi$cellId : the cell identifier
 
 ```{r}
 roi_files =  sprintf("%s/%s_Phase", basedir, trial_name)
-new_features = extractFeatures(roi_files, original_IDs, missing_frames, frames, min_frames)
+new_features = extractFeatures(roi_files, original_IDs, missing_frames, frames, min_frames, framerate=0.0028)
 ```
 Variables are calculated from the time series for any pre-existing features as well as the output of extractFeatures(), providing both summary statistics and indicators of time-series behaviour at different levels of detail obtained via wavelet analysis. 
 
