@@ -4,14 +4,12 @@
 \alias{varsFromTimeSeries}
 \title{Calculate variables from the time series of each extracted cell feature.}
 \usage{
-varsFromTimeSeries(features, new_features, expname, originalIDs)
+varsFromTimeSeries(features, new_features, originalIDs)
 }
 \arguments{
 \item{features}{A list of matrices, the same as the output from \code{copyPhaseFeatures}}
 
 \item{new_features}{A list of two lists, the same as the output from \code{copyFeatures}}
-
-\item{expname}{A experiment identifier as a string}
 
 \item{originalIDs}{A list of integers}
 }

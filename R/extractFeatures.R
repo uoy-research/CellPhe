@@ -151,10 +151,8 @@ prepareMiniImage = function(rois, frames) {
 #' @export
 copyPhaseFeatures = function(file, minframes){
 	# READ IN FULL FEATURE TABLE:
-	all = readLines(file)
-	skip_first = all[-1]
-	full_ft = read.csv(textConnection(skip_first), header = TRUE, stringsAsFactors = FALSE)
-    cellnums = as.numeric(levels(as.factor(full_ft[,3])))
+	full_ft <- read.csv(file, header=TRUE, skip=1, stringsAsFactors = FALSE)
+  cellnums = as.numeric(levels(as.factor(full_ft[,3])))
 	cell_ft <- vector(mode = "list", length = length(cellnums))
 	cell_missing <- vector(mode = "list", length = length(cellnums))
 	original_ID <- vector(mode = "list", length = length(cellnums))
@@ -228,8 +226,8 @@ copyFeatures = function(df, minframes) {
 			cell_missing[[num]] = missingframe
 			# COPY EXISTING FEATURES FROM THE TABLE:
 			numfeatures = ncol(ft.df) - 2
-			features = matrix(NA, nrow = nframes, ncol = 2)
-			features[ind,1:numfeatures] = as.matrix(ft.df[,3:ncol(ft.df)])
+			features = matrix(NA, nrow = nframes, ncol = 2)  # TODO only 2 columns?!
+			features[ind,1:numfeatures] = as.matrix(ft.df[,3:ncol(ft.df)])  # TODO assign all vals to 1 row?
 			cell_ft[[num]] = features
 			original_ID[[num]] = cellnums[i]
 		}	
@@ -284,6 +282,9 @@ extractFeatures = function(file, original_IDs, missing_frames, frames, min_frame
 	    if (nframes > min_frames){
 			
 			num = num + 1
+			# TODO Is this working as intended? Shouldn't 'num' be 'j' instead?
+			# Say the first entry has nframes < min_frames, then j=2 but num = 1
+			# but we want to index the second ID
 			idj = original_IDs[[num]]
 
 			# READ IN ROIS FOR SPECIFIC CELL:

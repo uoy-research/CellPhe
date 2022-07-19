@@ -4,10 +4,10 @@
 \alias{copyFeatures}
 \title{Copy features from a pre-existing feature table}
 \usage{
-copyFeatures(file, minframes)
+copyFeatures(df, minframes)
 }
 \arguments{
-\item{file}{A data frame comprising pre-calculated features (in columns)
+\item{df}{A data frame comprising pre-calculated features (in columns)
 for each frame of each cell (in rows). The first column should give the
 tracked cell identifier and the second should give the frame number.
 All other columns are considered to be features.}

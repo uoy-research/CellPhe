@@ -8,17 +8,16 @@
 #' original_IDs to provide rownames in the output matrix.
 #' @param features A list of matrices, the same as the output from \code{copyPhaseFeatures}
 #' @param new_features A list of two lists, the same as the output from \code{copyFeatures}
-#' @param expname A experiment identifier as a string
 #' @param originalIDs A list of integers
 #' @return A matrix with cells in rows and variables describing their behaviour over time in columns.
 #' @export
-varsFromTimeSeries = function(features, new_features, expname, originalIDs){
+varsFromTimeSeries = function(features, new_features, originalIDs){
 	trajArea = new_features[[1]]
 
 	num = length(new_features[[2]])
 	timeseries <- vector(mode = "list", length = num)
 	
-	  numcols <- 1109 + ncol(features[[1]])
+	  numcols <- 1109 + ncol(features[[1]]) + 1 # Last column for ID
     output = matrix(NA, nrow = num, ncol = numcols)
 	
 	for (j in 1:num){
@@ -54,19 +53,22 @@ varsFromTimeSeries = function(features, new_features, expname, originalIDs){
 	    vars = rbind(stats, eleVars, wVars)
 	    cn = colnames(vars)
   		rn = c("mean", "std", "skew", "asc", "des", "max", "l1_asc", "l1_des", "l1_max","l2_asc", "l2_des", "l2_max", "l3_asc", "l3_des", "l3_max")
-        names = rep(NA, length = (length(cn)*length(rn)+1))
-        m = 1
-        for (i in 1:length(cn)){
-        	for (k in 1:length(rn)){
-               names[m] = paste(cn[i], rn[k], sep = "_")
-               m = m+1
-            }
-        }
-        names[m] = "trajArea"
-	    output[j,1:(numcols-1)] = as.vector(vars)
-        output[j,numcols] = trajArea[[j]]
-        colnames(output) = names
-        row.names(output) = paste(expname, originalIDs, sep = "_")
+  		name_perms <- expand.grid(rn, cn)
+  		names <- paste(name_perms$Var2, name_perms$Var1, sep="_")
+  		names <- c(names, "trajArea")
+      #  names = rep(NA, length = (length(cn)*length(rn)+1))
+      #  m = 1
+      #  for (i in 1:length(cn)){
+      #  	for (k in 1:length(rn)){
+      #         names[m] = paste(cn[i], rn[k], sep = "_")
+      #         m = m+1
+      #      }
+      #  }
+      #  names[m] = "trajArea"
+        output[j, 1] <- originalIDs[[j]]
+  	    output[j, 2:(numcols-1)] = as.vector(vars)
+        output[j, numcols] = trajArea[[j]]
+        colnames(output) = c("ID", names)
 	}
     return(output)
 }
@@ -146,27 +148,28 @@ detVars = function(v){
 
 interpolate <- function(v)
 {
-	nframes = length(v)
-  	while (is.na(v[nframes]) == T){
-    	nframes = nframes - 1
+    while (is.na(v[nframes]) == T){
+      v = v[-nframes]
+      nframes = nframes - 1
     }
     while (is.na(v[1]) == T){
-        v = v[-1]
-        nframes = nframes - 1
+      v = v[-1]
+      nframes = nframes - 1
     }
-  	for (k in 1:nframes){
-  		r = 0
-    	if (is.na(v[k]) == T){
-	      	r = 1
-     	  	while (((k+r) < nframes) & (is.na(v[k+r])) == T) r = r+1
-   		}
-      	value = (v[k+r]-v[k-1])/(r+1)
-		if (r > 0){
-	        for (m in 1:r){
-        		v[k-1+m] = v[k-1] + m*value
-      		}
-      	}
-      	k = k+r
-   	}
-  	return(v[1:nframes])
+   
+    for (k in 1:nframes){
+      r = 0
+      if (is.na(v[k]) == T){
+        r = 1
+        while (((k+r) < nframes) & (is.na(v[k+r])) == T) r = r+1
+      }
+      value = (v[k+r]-v[k-1])/(r+1)
+      if (r > 0){
+        for (m in 1:r){
+          v[k-1+m] = v[k-1] + m*value
+        }
+      }
+      k = k+r
+    }
+    return(v[1:nframes])
 }

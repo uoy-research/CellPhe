@@ -71,12 +71,14 @@ tracked cell (copied to 'features' below).
 
 ```{r}
 # COPY PHASE FEATURES FROM PHASEFOCUS FEATURE TABLE FOR EACH CELL TRACKED FOR MORE THAN MIN_FRAMES AND FIND MISSING FRAMES:
+min_frames <- 50
 input_feature_table =  sprintf("%s/%s_Phase-FullFeatureTable.csv", basedir, trial_name)
-feature_table = copyPhaseFeatures(input_feature_table, 50)
+feature_table2 = copyPhaseFeatures(input_feature_table, 200)
 original_IDs = feature_table[[1]]
 missing_frames = feature_table[[2]]
 features = feature_table[[3]]
 ```
+
 Alternatively, pre-calculated features from any other tracking software can be read in
 using the function copyFeatures() if the data is formatted in a csv file with tracked cell 
 identifiers in the first column and the frame numbers in the second column, followed by a 
@@ -112,12 +114,13 @@ roi$cellId : the cell identifier
 roi_files =  sprintf("%s/%s_Phase", basedir, trial_name)
 new_features = extractFeatures(roi_files, original_IDs, missing_frames, frames, min_frames, framerate=0.0028)
 ```
+
 Variables are calculated from the time series for any pre-existing features as well as the output of extractFeatures(), providing both summary statistics and indicators of time-series behaviour at different levels of detail obtained via wavelet analysis. 
 
 ![image](https://user-images.githubusercontent.com/12910047/178157253-92438bba-5778-4028-a227-5dc88b37a086.png)
 
 ```{r}
-tsvariables = varsFromTimeSeries(features, new_features, trial_name, original_IDs)
+tsvariables = varsFromTimeSeries(features, new_features, original_IDs)
 ```
 
 TODO classification/clustering

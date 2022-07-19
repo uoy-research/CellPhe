@@ -4,7 +4,14 @@
 \alias{extractFeatures}
 \title{Calculates cell features from timelapse videos}
 \usage{
-extractFeatures(file, original_IDs, missing_frames, frames, min_frames)
+extractFeatures(
+  file,
+  original_IDs,
+  missing_frames,
+  frames,
+  min_frames,
+  framerate = 1
+)
 }
 \arguments{
 \item{file}{A path to a directory containing multiple Report Object Instance
