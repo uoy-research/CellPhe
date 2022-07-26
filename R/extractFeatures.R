@@ -338,7 +338,6 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
      	# not output to the user so maybe best to keep separate for now
 	}
 	for (j in 1:n_cells){
-	  # TODO isn't this calculating mean frame id?
 	  # This could also be moved into the upper loop
 	  meanr[j] = mean(RandA[[j]][,2], na.rm = TRUE)
 	}	
