@@ -11,8 +11,12 @@ varsFromTimeSeries = function(df) {
   cell_ids <- unique(df$CellID)
   num_cells = length(cell_ids)
   
-  n_new_features <- ncol(df) - 76  # 76 = 72 features from extractFeatures + 2 ID cols + 2 coords
-  numcols <- 1109 + n_new_features + 1 # Last column for ID
+  n_ts_vars <- 15
+  n_old_features <- 72
+  # Dataframe at minimum is 72 features, 2 id cols, 2 coord cols
+  n_new_features <- ncol(df) - (n_old_features + 2 + 2)
+  # Have a time-series summary for each feature + CellID + trajArea
+  numcols <- n_ts_vars * (n_old_features + n_new_features) + 1 + 1
   output = matrix(NA, nrow = num_cells, ncol = numcols)
   
   for (j in 1:num_cells) {
@@ -25,23 +29,21 @@ varsFromTimeSeries = function(df) {
     wVars <- matrix(NA, nrow = 9, ncol = numvars)
     
     # Use first column of newfeatures which may have additional frames considered "missing"
-    # TODO what is this doing?
-    # If just for missing frames, can we get this from the frameID?
-    #firstnewfeature = ncol(features[[j]]) + 1
-    #missingInd = which(is.na(time_series[, firstnewfeature]))
-    #if (length(missingInd) > 0) {
-    #  # add NAs for original features
-    #  timeseries[missingInd, 1:ncol(features[[j]])] = NA
-    #  # INTERPOLATE MISSING VALUES
-    #  timeseries = apply(timeseries, 2, interpolate)
-    #  # CALCULATE SUMMARY STATISTICS
-    #  stats = apply(timeseries[-missingInd, ], 2, summaryStats)
-    #}
-    #else {
-    #  # CALCULATE SUMMARY STATISTICS
-    #  stats = apply(timeseries, 2, summaryStats)
-    #}
-    stats = apply(timeseries, 2, summaryStats)
+    firstnewfeature = 1
+    missingInd = which(is.na(timeseries[, firstnewfeature]))
+    if (length(missingInd) > 0) {
+      # add NAs for original features if available
+      if (ncol(timeseries) > n_old_features) {
+        timeseries[missingInd, (n_old_features+1):ncol(timeseries)] <- NA
+      }
+      # INTERPOLATE MISSING VALUES
+      timeseries = apply(timeseries, 2, interpolate)
+      # CALCULATE SUMMARY STATISTICS
+      stats = apply(timeseries[-missingInd, ], 2, summaryStats)
+    } else {
+      # CALCULATE SUMMARY STATISTICS
+      stats = apply(timeseries, 2, summaryStats)
+    }
     
     # CALCULATE ASCENT, DESCENT AND MAX
     eleVars = apply(timeseries, 2, elevationVars)
@@ -49,15 +51,6 @@ varsFromTimeSeries = function(df) {
     wVars = apply(timeseries, 2, waveVars)
     
     vars = rbind(stats, eleVars, wVars)
-    #  names = rep(NA, length = (length(cn)*length(rn)+1))
-    #  m = 1
-    #  for (i in 1:length(cn)){
-    #  	for (k in 1:length(rn)){
-    #         names[m] = paste(cn[i], rn[k], sep = "_")
-    #         m = m+1
-    #      }
-    #  }
-    #  names[m] = "trajArea"
     output[j, 1] <- cell_id
     output[j, 2:(numcols - 1)] = as.vector(vars)
     output[j, numcols] = calculateTrajArea(df$xcentres[df$CellID == cell_id], df$ycentres[df$CellID == cell_id])
