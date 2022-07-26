@@ -74,9 +74,6 @@ tracked cell (copied to 'features' below).
 min_frames <- 50
 input_feature_table =  sprintf("%s/%s_Phase-FullFeatureTable.csv", basedir, trial_name)
 feature_table2 = copyPhaseFeatures(input_feature_table, 200)
-original_IDs = feature_table[[1]]
-missing_frames = feature_table[[2]]
-features = feature_table[[3]]
 ```
 
 Alternatively, pre-calculated features from any other tracking software can be read in
@@ -112,7 +109,7 @@ roi$cellId : the cell identifier
 
 ```{r}
 roi_files =  sprintf("%s/%s_Phase", basedir, trial_name)
-new_features = extractFeatures(roi_files, original_IDs, missing_frames, frames, min_frames, framerate=0.0028)
+new_features = extractFeatures(feature_table2, frames, roi_files, min_frames, framerate=0.0028)
 ```
 
 Variables are calculated from the time series for any pre-existing features as well as the output of extractFeatures(), providing both summary statistics and indicators of time-series behaviour at different levels of detail obtained via wavelet analysis. 

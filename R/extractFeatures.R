@@ -129,116 +129,38 @@ prepareMiniImage = function(rois, frames) {
   lapply(rois, function(roi) {applyRoiMask(roi, frames[[roi[["frameId"]]]])})
 }
 
-#' Copy features from an existing PhaseFocus feature table
+#' Copy cell-frame features from an existing PhaseFocus table
 #' 
-#' Copy chosen values from a feature table of pre-calculated features as output
+#' Copies volume and sphericity from a feature table of pre-calculated features as output
 #' by PhaseFocus software. Only the values for the features volume and 
 #' sphericity, which require phase information, are copied as all other features
 #' can be calculated by \code{extractFeatures}. Only cells that are tracked for
-#' a minimum of \code{minframes} are copied into the new feature table. 
+#' a minimum of \code{minframes} are included. 
 #' 
 #' @param file The filepath to a CSV file containing features output by PhaseFocus software.
-#' @inheritParams copyFeatures
-#' @return A list of length N, where N is the number of cells tracked for at 
-#' least \code{minframes}, with the following entries:
+#' @param minframes The minimum number of frames a cell must be tracked for to
+#' be included in the output features.
+#' @return A dataframe with 1 row corresponding to 1 cell tracked in 1 frame 
+#' with the following columns:
 #' \itemize{
-#'   \item{\code{original_ID}: the cell ID from the input file}
-#'   \item{\code{cell_missing}: a vector of 1s and 0s with length equal to the 
-#'   number of frames the cell is tracked over, where a missing frame has a 1
-#'   and a non-missing frame 0}
-#'   \item{\code{cell_ft}: a matrix of copied features for each frame of each cell}
+#'   \item{\code{frameID}: the numeric frameID}
+#'   \item{\code{cellID}: the numeric cellID}
+#'   \item{\code{Volume}: a real-valued number}
+#'   \item{\code{Sphericity}: a real-valued number}
 #' }
 #' @export
 copyPhaseFeatures = function(file, minframes){
-	# READ IN FULL FEATURE TABLE:
 	full_ft <- read.csv(file, header=TRUE, skip=1, stringsAsFactors = FALSE)
-  cellnums = as.numeric(levels(as.factor(full_ft[,3])))
-	cell_ft <- vector(mode = "list", length = length(cellnums))
-	cell_missing <- vector(mode = "list", length = length(cellnums))
-	original_ID <- vector(mode = "list", length = length(cellnums))
-
-    num = 0
-    for (i in 1:length(cellnums)){
-  		ft = full_ft[which(full_ft[,3] == cellnums[i]),]
-		framenums = as.vector(ft[,1])
-		nframes = max(framenums)-min(framenums)+1
-		if (nframes > minframes){
-			num = num + 1
-			missingframe = rep(1,nframes)
-			ind = framenums-min(framenums)+1
-        	if (length(ind) > 0) missingframe[ind] = 0
-			missingframe[ind] = 0
-			cell_missing[[num]] = missingframe
-			# COPY EXISTING FEATURES FROM THE TABLE:
-			features = matrix(NA, nrow = nframes, ncol = 2)
-			colnames(features) = c("Vol", "Sph")
-			features[ind,1] = as.vector(ft[,9])
-			features[ind,2] = as.vector(ft[,13])
-			cell_ft[[num]] = features
-			original_ID[[num]] = cellnums[i]
-		}	
-		
-	}
-	cell_missing = cell_missing[1:num]
-	cell_ft = cell_ft[1:num]
-	original_ID = original_ID[1:num]
-	cell_info = list(original_ID, cell_missing, cell_ft)
-	return(cell_info)
+	out <- full_ft[, c("Frame", "Tracking.ID", "Volume..µm..", "Sphericity...")]
+	colnames(out) <- c("FrameID", "CellID", "Volume", "Sphericity")
+	
+	# Restrict to cells which are in minimum number of frames
+	out_sub <- out |>
+	    dplyr::group_by(CellID) |>
+	    dplyr::filter(dplyr::n() >= minframes) |>
+	    dplyr::ungroup()
 }
 
-#' Copy features from a pre-existing feature table
-#' 
-#' Copy chosen values from an existing table of pre-calculated features.
-#' 
-#' @param df A data frame comprising pre-calculated features (in columns) 
-#' for each frame of each cell (in rows). The first column should give the 
-#' tracked cell identifier and the second should give the frame number.
-#' All other columns are considered to be features.
-#' @param minframes The minimum number of frames a cell must be tracked for to
-#' be included in the output features.
-#' @return A list of length N, where N is the number of cells tracked for at 
-#' least \code{minframes}, with the following entries:
-#' \itemize{
-#'   \item{\code{original_ID}: the cell ID from the input file}
-#'   \item{\code{cell_missing}: a vector of 1s and 0s with length equal to the 
-#'   number of frames the cell is tracked over, where a missing frame has a 1
-#'   and a non-missing frame 0}
-#'   \item{\code{cell_ft}: a matrix of copied features for each frame of each cell}
-#' }
-#' @export
-copyFeatures = function(df, minframes) {
-  cellnums = df[,1]
-	cell_ft <- vector(mode = "list", length = length(cellnums))
-	cell_missing <- vector(mode = "list", length = length(cellnums))
-	original_ID <- vector(mode = "list", length = length(cellnums))
-
-    num = 0
-    for (i in 1:length(cellnums)){
-  		ft.df = df[which(df[,1] == cellnums[i]),]
-		framenums = as.vector(ft.df[,2])
-		nframes = max(framenums)-min(framenums)+1
-		if (nframes > minframes){
-			num = num + 1
-			missingframe = rep(1,nframes)
-			ind = framenums-min(framenums)+1
-        	if (length(ind) > 0) missingframe[ind] = 0
-			missingframe[ind] = 0
-			cell_missing[[num]] = missingframe
-			# COPY EXISTING FEATURES FROM THE TABLE:
-			numfeatures = ncol(ft.df) - 2
-			features = matrix(NA, nrow = nframes, ncol = 2)  # TODO only 2 columns?!
-			features[ind,1:numfeatures] = as.matrix(ft.df[,3:ncol(ft.df)])  # TODO assign all vals to 1 row?
-			cell_ft[[num]] = features
-			original_ID[[num]] = cellnums[i]
-		}	
-		
-	}
-	cell_missing = cell_missing[1:num]
-	cell_ft = cell_ft[1:num]
-	original_ID = original_ID[1:num]
-	cell_info = list(original_ID, cell_missing, cell_ft)
-	return(cell_info)
-}
 
 #' Calculates cell features from timelapse videos
 #' 
@@ -253,42 +175,41 @@ copyFeatures = function(df, minframes) {
 #' min_frames were removed), original_IDs, information on missing frames for 
 #' each cell in a list of vectors with missing frames indicated by 1 and 
 #' non-missing frames by 0, missing_frames, and the normalised images for every frame, normalised_frames.
-#' @param file A path to a directory containing multiple Report Object Instance
+#' @param df DataFrame where every row corresponds to a combination of a cell
+#' tracked in a frame. It must have at least columns \code{CellID} and \code{FrameID},
+#' along with any additional features.
+#' @param roi_folder A path to a directory containing multiple Report Object Instance
 #' (ROI) files named in the format \code{cellid}-\code{frameid}.roi
-#' @param original_IDs A list of cell IDs that correspond to the files in \code{file}.
-#' @param missing_frames A list with length equal to the number of cells that are tracked
-#' for at least \code{min_frames} frames. Each entry is a vector of 1s and 0s with length equal to the
-#' number of frames the cell is tracked over, where a missing frame has a 1
-#' and a non-missing frame 0.
 #' @param frames The frames themselves, a list of TIFF images.
 #' @param min_frames The minimum number of frames a cell must be tracked for to
 #' be included in the output features.
-#' @return A list with 2 elements, each of which is a list with length equal to
-#' the number of cells tracked for at least \code{min_frames}. The first element 
-#' contains the trajectory measures for each cell and the second element 
-#' contains the matrix of feature time series for each cell.
+#' @return A dataframe with 76 columns and 1 row per cell per frame it's present in:
+#' \itemize{
+#'   \item{\code{frameID}: the numeric frameID}
+#'   \item{\code{cellID}: the numeric cellID}
+#'   \item{\code{...}: 72 frame specific features
+#'   \item{\code{xcentres}: the x-coordinate of the cell in that frame}
+#'   \item{\code{ycentres}: the y-coordinate of the cell in that frame}
+#' }
 #' @export
-extractFeatures = function(file, original_IDs, missing_frames, frames, min_frames, framerate=1){
+extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
 
-	all_features <- vector(mode = "list", length = length(missing_frames))
-	centroids <- vector(mode = "list", length = length(missing_frames))
-	RandA <- vector(mode = "list", length = length(missing_frames))
+  n_cells <- length(unique(df$CellID))
+	all_features <- vector(mode = "list", length = n_cells)
+	centroids <- vector(mode = "list", length = n_cells)
+	RandA <- vector(mode = "list", length = n_cells)
+  meanr = rep(NA, n_cells)
 
     normalised_frames = lapply(frames, normaliseImage, lower = 0, upper = 255)
-
-    num = 0
-    for (j in 1:length(missing_frames)){
-	    nframes = length(missing_frames[[j]])		
-	    if (nframes > min_frames){
-			
-			num = num + 1
-			# TODO Is this working as intended? Shouldn't 'num' be 'j' instead?
-			# Say the first entry has nframes < min_frames, then j=2 but num = 1
-			# but we want to index the second ID
-			idj = original_IDs[[num]]
+    # TODO Could replace with lapply so can get list of DFs
+    for (j in 1:n_cells){
+			idj = unique(df$CellID)[j]
+      frame_ids <- df |> dplyr::filter(CellID == idj) |> dplyr::distinct(FrameID) |> dplyr::pull(FrameID)
+	    nframes = length(frame_ids)		
 
 			# READ IN ROIS FOR SPECIFIC CELL:
-			rois = readRois(file, cellId = idj)
+	    # TODO specify both frameID and cellID
+			rois = readRois(roi_folder, cellId = idj)
 
 			# MOVEMENT FEATURES:
 			mfeatures = matrix(NA, nrow = nframes, ncol = 4)
@@ -311,20 +232,15 @@ extractFeatures = function(file, original_IDs, missing_frames, frames, min_frame
   	    	ycentres <- rep(NA, nframes)
   	    	frameIds <- rep(NA, nframes)
 
-			nf = 0
 			for (i in 1:nframes){
-				if (missing_frames[[j]][i] != 1){
-					nf = nf+1
-					frame = normalised_frames[[rois[[nf]]$frameId]]
-					roi = rois[[nf]]
+					frame = normalised_frames[[rois[[i]]$frameId]]
+					roi = rois[[i]]
 					# check whether cell too small in either direction
 					w = roi$xrange[2]- roi$xrange[1]+1
 					h = roi$yrange[2]- roi$yrange[1]+1
 					if ((w < 8)|(h < 8)){
-						missing_frames[[j]][i] = 1
+					  next
 					}
-					else
-					{
 	 					frameIds[i] = roi$frameId
 						# EXTRACT SUB-IMAGE, MASK, CELL PIXELS AND BOUNDARY COORDINATES FOR SPECIFIC CELL:
 						sub_image_info = subImageInfo(roi, frame)
@@ -336,7 +252,7 @@ extractFeatures = function(file, original_IDs, missing_frames, frames, min_frame
 
 				        # MOVEMENT FEATURES
 
-                if ((i == 1) | ((missing_frames[[j]][i] != 1) & (sum(missing_frames[[j]][1:i]) == (i-1)))) {
+                if (i == 1) {
 				        	mfeatures[i,1] = 0.0
 				        	mfeatures[i,2] = 0.0
 				        	mfeatures[i,3] = 0.0
@@ -413,43 +329,34 @@ extractFeatures = function(file, original_IDs, missing_frames, frames, min_frame
         		      for (k in 1:9){
      	    		  		tfeatures[i,(k+45)] = quantileVars[[k]]
 	                  }
-	               }    	
-				}
 			}
-			centroids[[num]] = cbind(xcentres, ycentres)
-			RandA[[num]] =  cbind(frameIds, bfeatures[,1], bfeatures[,6])
- 	      	all_features[[num]] = cbind(mfeatures, bfeatures, tfeatures)
-     	}	
+			centroids[[j]] = cbind(xcentres, ycentres)
+			RandA[[j]] =  cbind(frameIds, bfeatures[,1], bfeatures[,6])
+     	all_features[[j]] = cbind(CellID=idj, FrameID=frame_ids, mfeatures, bfeatures, tfeatures)
+     	# TODO These 3 all have the same number of rows and in theory could return in a single
+     	# dataframe, but centroids and RandA are only used as intermediary steps and
+     	# not output to the user so maybe best to keep separate for now
 	}
-	all_features = all_features[1:num]
-	centroids = centroids[1:num]
-	RandA = RandA[1:num]
-    meanr = rep(NA, num)
-	for (j in 1:num){
+	for (j in 1:n_cells){
+	  # TODO isn't this calculating mean frame id?
+	  # This could also be moved into the upper loop
 	  meanr[j] = mean(RandA[[j]][,1], na.rm = TRUE)
 	}	
 	meanrad = mean(meanr)
+	
 	# CALCULATE DENSITY FOR EACH CELL
-	cell_density <- vector(mode = "list", length = length(missing_frames))
-	num = 0
-	for (j in 1:length(missing_frames)){
-	    nframes = length(missing_frames[[j]])		
-	    if (nframes > min_frames){
-	    	num = num+1
-	        cell_density[[num]] = densityCalc(num, centroids, RandA, meanrad)
-        }
-    }
-    cell_density = cell_density[1:num]
-    
-	timeseries <- vector(mode = "list", length = num)
-	trajArea <- vector(mode = "list", length = num)
-	for (j in 1:num){
-    	timeseries[[j]] = cbind(all_features[[j]], cell_density[[j]])
-        colnames(timeseries[[j]]) = c(colnames(all_features[[j]]), "Den")
-		trajArea[[j]] = calculateTrajArea(centroids[[j]])
-    }
-   
-	return(list(trajArea, timeseries))
+	#timeseries <- vector(mode = "list", length = n_cells)
+	#trajArea <- vector(mode = "list", length = n_cells)
+	do.call('rbind', lapply(1:n_cells, function(j) {
+      feat_df <- as.data.frame(all_features[[j]])
+      feat_df$dens <- densityCalc(j, centroids, RandA, meanrad)
+      feat_df <- cbind(feat_df, centroids[[j]])
+      feat_df
+    	#timeseries[[j]] = cbind(all_features[[j]], dens)
+     # colnames(timeseries[[j]]) = c(colnames(all_features[[j]]), "Den")
+      # TODO this could be calculated in varsFromTimeSeries if the centroids are returned as part of this
+  		#trajArea[[j]] = calculateTrajArea(centroids[[j]])
+  }))
 }
 
 subImageInfo = function(roi, frame) {
