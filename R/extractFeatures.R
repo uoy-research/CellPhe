@@ -190,6 +190,7 @@ copyPhaseFeatures = function(file, minframes){
 #'   \item{\code{...}: 72 frame specific features
 #'   \item{\code{xcentres}: the x-coordinate of the cell in that frame}
 #'   \item{\code{ycentres}: the y-coordinate of the cell in that frame}
+#'   \item{\code{...}: Any other data columns that were present in \code{df}}
 #' }
 #' @export
 extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
@@ -347,7 +348,7 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
 	# CALCULATE DENSITY FOR EACH CELL
 	#timeseries <- vector(mode = "list", length = n_cells)
 	#trajArea <- vector(mode = "list", length = n_cells)
-	do.call('rbind', lapply(1:n_cells, function(j) {
+	res <- do.call('rbind', lapply(1:n_cells, function(j) {
       feat_df <- as.data.frame(all_features[[j]])
       feat_df$dens <- densityCalc(j, centroids, RandA, meanrad)
       feat_df <- cbind(feat_df, centroids[[j]])
@@ -357,6 +358,7 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
       # TODO this could be calculated in varsFromTimeSeries if the centroids are returned as part of this
   		#trajArea[[j]] = calculateTrajArea(centroids[[j]])
   }))
+	res |> dplyr::inner_join(df, by=c("CellID", "FrameID"))
 }
 
 subImageInfo = function(roi, frame) {
@@ -860,10 +862,10 @@ densityCalc = function(jj, centroids, RandA, avrad){
     return(density)
 }
 
-calculateTrajArea <- function(centroids)
+calculateTrajArea <- function(x, y)
 {
-  xCentres<-stats::na.omit(centroids[,1])
-  yCentres<-stats::na.omit(centroids[,2])
+  xCentres<-stats::na.omit(x)
+  yCentres<-stats::na.omit(y)
   numframes = length(xCentres)
   trajArea = ((max(xCentres)-min(xCentres))*(max(yCentres)-min(yCentres)))/numframes
   return(trajArea)

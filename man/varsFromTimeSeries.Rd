@@ -4,23 +4,17 @@
 \alias{varsFromTimeSeries}
 \title{Calculate variables from the time series of each extracted cell feature.}
 \usage{
-varsFromTimeSeries(features, new_features, originalIDs)
+varsFromTimeSeries(df)
 }
 \arguments{
-\item{features}{A list of matrices, the same as the output from \code{copyPhaseFeatures}}
-
-\item{new_features}{A list of two lists, the same as the output from \code{copyFeatures}}
-
-\item{originalIDs}{A list of integers}
+\item{df}{A data frame, the same as the output from \code{extractFeatures}.}
 }
 \value{
-A matrix with cells in rows and variables describing their behaviour over time in columns.
+A data frame with cells in rows and variables describing their behaviour over time in columns.
 }
 \description{
 Reads in the time series for any pre-existing features as well as the
 output of \code{extractFeatures}. Variables are calculated from the time series,
 providing both summary statistics and indicators of time-series behaviour
-at different levels of detail obtained via wavelet analysis. Name is an
-experiment identifier, used together with the cell identifiers in
-original_IDs to provide rownames in the output matrix.
+at different levels of detail obtained via wavelet analysis.
 }

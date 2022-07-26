@@ -27,6 +27,7 @@ A dataframe with 76 columns and 1 row per cell per frame it's present in:
 \item{\code{...}: 72 frame specific features
 \item{\code{xcentres}: the x-coordinate of the cell in that frame}
 \item{\code{ycentres}: the y-coordinate of the cell in that frame}
+\item{\code{...}: Any other data columns that were present in \code{df}}
 }
 }
 \description{

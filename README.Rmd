@@ -117,7 +117,7 @@ Variables are calculated from the time series for any pre-existing features as w
 ![image](https://user-images.githubusercontent.com/12910047/178157253-92438bba-5778-4028-a227-5dc88b37a086.png)
 
 ```{r}
-tsvariables = varsFromTimeSeries(features, new_features, original_IDs)
+tsvariables = varsFromTimeSeries(new_features)
 ```
 
 TODO classification/clustering
