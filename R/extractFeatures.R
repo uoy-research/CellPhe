@@ -202,7 +202,6 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
   meanr = rep(NA, n_cells)
 
     normalised_frames = lapply(frames, normaliseImage, lower = 0, upper = 255)
-    # TODO Could replace with lapply so can get list of DFs
     for (j in 1:n_cells){
 			idj = unique(df$CellID)[j]
       frame_ids <- df |> dplyr::filter(CellID == idj) |> dplyr::distinct(FrameID) |> dplyr::pull(FrameID)
@@ -334,7 +333,7 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
 			centroids[[j]] = cbind(xcentres, ycentres)
 			RandA[[j]] =  cbind(frameIds, bfeatures[,1], bfeatures[,6])
      	all_features[[j]] = cbind(CellID=idj, FrameID=frame_ids, mfeatures, bfeatures, tfeatures)
-     	# TODO These 3 all have the same number of rows and in theory could return in a single
+     	# These 3 all have the same number of rows and in theory could return in a single
      	# dataframe, but centroids and RandA are only used as intermediary steps and
      	# not output to the user so maybe best to keep separate for now
 	}
@@ -346,17 +345,11 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
 	meanrad = mean(meanr)
 	
 	# CALCULATE DENSITY FOR EACH CELL
-	#timeseries <- vector(mode = "list", length = n_cells)
-	#trajArea <- vector(mode = "list", length = n_cells)
 	res <- do.call('rbind', lapply(1:n_cells, function(j) {
       feat_df <- as.data.frame(all_features[[j]])
       feat_df$dens <- densityCalc(j, centroids, RandA, meanrad)
       feat_df <- cbind(feat_df, centroids[[j]])
       feat_df
-    	#timeseries[[j]] = cbind(all_features[[j]], dens)
-     # colnames(timeseries[[j]]) = c(colnames(all_features[[j]]), "Den")
-      # TODO this could be calculated in varsFromTimeSeries if the centroids are returned as part of this
-  		#trajArea[[j]] = calculateTrajArea(centroids[[j]])
   }))
 	res |> dplyr::inner_join(df, by=c("CellID", "FrameID"))
 }
