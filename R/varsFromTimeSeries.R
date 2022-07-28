@@ -156,6 +156,7 @@ detVars = function(v){
 
 interpolate <- function(v)
 {
+    nframes = length(v)
     while (is.na(v[nframes]) == T){
       v = v[-nframes]
       nframes = nframes - 1
