@@ -426,7 +426,7 @@ extractFeatures = function(file, original_IDs, missing_frames, frames, min_frame
 	RandA = RandA[1:num]
     meanr = rep(NA, num)
 	for (j in 1:num){
-	  meanr[j] = mean(RandA[[j]][,1], na.rm = TRUE)
+	  meanr[j] = mean(RandA[[j]][,2], na.rm = TRUE)
 	}	
 	meanrad = mean(meanr)
 	# CALCULATE DENSITY FOR EACH CELL
