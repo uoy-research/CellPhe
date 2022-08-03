@@ -73,7 +73,7 @@ tracked cell (copied to 'features' below).
 # COPY PHASE FEATURES FROM PHASEFOCUS FEATURE TABLE FOR EACH CELL TRACKED FOR MORE THAN MIN_FRAMES AND FIND MISSING FRAMES:
 min_frames <- 50
 input_feature_table =  sprintf("%s/%s_Phase-FullFeatureTable.csv", basedir, trial_name)
-feature_table = copyPhaseFeatures(input_feature_table, 200)
+feature_table = copyPhaseFeatures(input_feature_table, min_frames)
 original_IDs = feature_table[[1]]
 missing_frames = feature_table[[2]]
 features = feature_table[[3]]
