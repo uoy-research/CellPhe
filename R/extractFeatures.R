@@ -344,7 +344,7 @@ extractFeatures = function(file, original_IDs, missing_frames, frames, min_frame
 					        # KEEP STARTING POSITION FOR DISPLACEMENT
 				        	startx = xcentres[i]
 				        	starty = ycentres[i]
-				        	keepframenum = 1
+				        	keepframenum = i
 				        }
 				        else {				        
 							# DISPLACEMENT
