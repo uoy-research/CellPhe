@@ -260,7 +260,7 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
 					        # KEEP STARTING POSITION FOR DISPLACEMENT
 				        	startx = xcentres[i]
 				        	starty = ycentres[i]
-				        	keepframenum = 1
+				        	keepframenum = i
 				        }
 				        else {				        
 							# DISPLACEMENT
@@ -273,7 +273,7 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
 				        	mfeatures[i,3] = mfeatures[i,1]/mfeatures[i,2]
 							mfeatures[!is.finite(mfeatures[i,3]),3]= 0	
 							# VELOCITY
-							numframes = i - keepframenum 
+							    numframes <- frame_ids[i] - frame_ids[i-1]
 				        	mfeatures[i,4] = framerate*dist/numframes
 				        	keepframenum = i
 				        }
@@ -350,6 +350,7 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
       feat_df <- cbind(feat_df, centroids[[j]])
       feat_df
   }))
+	# TODO could use base::merge instead of adding dplyr dependency
 	res |> dplyr::inner_join(df, by=c("CellID", "FrameID"))
 }
 

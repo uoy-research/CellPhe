@@ -1,11 +1,12 @@
 devtools::load_all()
 library(CellPhe)
+library(tidyverse)
 trial_name <- "05062019_B3_3"
 basedir <- "data"
 
 imagedata <- sprintf("%s/%s_imagedata", basedir, trial_name)
 frames <- readTiffs(imagedata)
-min_frames <- 200
+min_frames <- 300
 input_feature_table <- sprintf("%s/%s_Phase-FullFeatureTable.csv", basedir, trial_name)
 feature_table <- copyPhaseFeatures(input_feature_table, min_frames)
 
@@ -15,19 +16,119 @@ new_features <- extractFeatures(feature_table, frames, roi_files, min_frames, fr
 tsvariables = varsFromTimeSeries(new_features)
 
 ############## Benchmark extractFeatures
-# TODO Need to rerun the original code (initial-release branch) and 
-# also save the OriginalIDs list
 old_feat <- readRDS("tests/expected-output/extractFeatures_output.rds")
+old_ids <- unlist(readRDS("tests/expected-output/originalIDs.rds"))
 # Need to convert to dataframe for comparison
-old_feat_df <- do.call('rbind', old_feat[[2]])
+old_feat_df <- bind_rows(setNames(lapply(old_feat[[2]], as.data.frame), old_ids), .id='CellID')
+
+# NB: It's possible to have more cells in old dataframe than new
+# The old code counts the number of frames as the difference
+# between the max and min frame id, rather than how many rows there
+# are per cell.
+# This shows how many cells would be found with the old code,
+# which matches up with the expected output.
+# NB: the > rather than >= which I think is a bug
+read_csv("data/05062019_B3_3_Phase-FullFeatureTable.csv", skip=1) |>
+    group_by(`Tracking ID`) |> 
+    summarise(frame_diff = max(Frame) - min(Frame) + 1) |>
+    filter(frame_diff > 300) |>
+    nrow()
+
+# This test will only compare the cells present in both datasets
+old_feat_df <- old_feat_df |> filter(CellID %in% unique(new_features$CellID))
+
+# Both functions return slightly different numbers of columns
+# The old function doesn't return:
+#   - FrameID
+#   - the Phase features of Volume and Sphericity
+#   - x-y centres
+# Density also has a different name
+old_feat_df <- old_feat_df |> rename(dens=Den)
+
+# So now can investigate the number of frames issue
+# Which I think is to do with this missing frames business
+missing_frames <- readRDS("tests/expected-output/missing_frames.rds")
+# Subset this to the CellIDs that have the required number of frames available
+missing_frames <- missing_frames[old_ids %in% unique(new_features$CellID)]
+old_ids <- old_ids[old_ids %in% unique(new_features$CellID)]
+
+# NB: The old results have fully NA rows for frames with missing cells
+# This code removes those
+missing_df <- map_dfr(setNames(missing_frames, old_ids), 
+                      function(x) tibble(framenum=1:length(x), frame_missing=x), 
+                      .id="CellID") |> 
+              filter(frame_missing == 0)
+  
+old_feat_df_nomissing <- old_feat_df |>
+  group_by(CellID) |>
+  mutate(framenum = row_number()) |>
+  inner_join(missing_df, by=c("CellID", "framenum")) |>
+  select(-frame_missing) |>
+  mutate(CellID = as.numeric(CellID)) |>
+  ungroup()
+
+# Reorder to put frame number second for ease of inspection
+cols <- colnames(old_feat_df_nomissing)
+cols <- c("CellID", "framenum", setdiff(cols, c("CellID", "framenum")))
+old_feat_df_nomissing <- old_feat_df_nomissing[, cols]
+
+# New dataset has those 4 more features: volume, sphericity, x, y
+assertthat::are_equal(nrow(old_feat_df_nomissing), nrow(new_features))
+assertthat::are_equal(ncol(old_feat_df_nomissing), ncol(new_features)-4)
+
+# Now can compare on the feature values after ordering them the same
+# Assuming the order of frames in the old dataframe is the same 
+# as for the new one (that has explicit frameIDs)
+old_feat_df_nomissing <- old_feat_df_nomissing |> arrange(CellID, framenum)
+new_features <- new_features |> arrange(CellID, FrameID)
+cols_to_compare <- setdiff(colnames(old_feat_df_nomissing), c("CellID", "framenum"))
+feat_comp <- sapply(cols_to_compare,
+                    function(col) all(new_features[[col]] == old_feat_df_nomissing[[col]]))
+# They are all identical except 2 columns, not bad!
+table(feat_comp)
+# Density
+feat_comp[!feat_comp]
+
+# Quick check for density too
+# 56% difference here, that's not great
+tibble(old=old_feat_df_nomissing$dens, new=new_features$dens) |>
+  mutate(delta = new - old) |> 
+  summarise(n_diff = sum(abs(delta) > 0),
+            pct_diff = mean(abs(delta) > 0)*100)
+
+dens_diff_cellids <- old_feat_df_nomissing |>
+  select(CellID, framenum, old=dens) |>
+  mutate(new=new_features$dens,
+         delta = new - old) |> 
+  filter(abs(delta) > 0) |>
+  distinct(CellID)
+
+# There are differences in all 12 cells, not just those that have missing frames
+length(dens_diff_cellids$CellID)
+
+tibble(CellID = old_feat_df_nomissing$CellID,
+       framenum=old_feat_df_nomissing$framenum,
+       FrameID = new_features$FrameID,
+       old = old_feat_df_nomissing$dens,
+       new = new_features$dens)
 
 ############## Benchmark varsFromTimeSeries
 tsvariables <- tsvariables |> dplyr::arrange(CellID)
-old <- readRDS("tests/expected-output/tsvariables_output.rds")
+old_ts <- readRDS("tests/expected-output/tsvariables_output.rds")
 colnames(tsvariables) <- gsub("CellID", "ID", colnames(tsvariables))
 colnames(tsvariables) <- gsub("Volume_", "Vol_", colnames(tsvariables))
 colnames(tsvariables) <- gsub("Sphericity_", "Sph_", colnames(tsvariables))
 colnames(tsvariables) <- gsub("dens_", "Den_", colnames(tsvariables))
+
+# Restrict analysis to CellIDs that appear in both
+# The old CellIDs are stored separately
+ids_to_use <- old_ids %in% unique(new_features$CellID)
+
+# Let's look at the output from extractFeatures first
+old_feat_df |> head()
+
 comp <- sapply(colnames(tsvariables), function(x) all(tsvariables[[x]] == old_ts[, x]))
 # Nope this has changed a fair bit!
 table(comp)
+
+# TODO compare on trajArea too
