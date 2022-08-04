@@ -22,24 +22,32 @@ varsFromTimeSeries = function(df) {
   for (j in 1:num_cells) {
     cell_id <- cell_ids[j]
     timeseries = df[ df$CellID == cell_id, setdiff(colnames(df), c("CellID", "FrameID", "xcentres", "ycentres"))]
+    frame_ids <- df$FrameID[df$CellID == cell_id]
     numvars = dim(timeseries)[2]
     
     stats <- matrix(NA, nrow = 3, ncol = numvars)
     eleVars <- matrix(NA, nrow = 3, ncol = numvars)
     wVars <- matrix(NA, nrow = 9, ncol = numvars)
     
-    # Use first column of newfeatures which may have additional frames considered "missing"
-    firstnewfeature = 1
-    missingInd = which(is.na(timeseries[, firstnewfeature]))
-    if (length(missingInd) > 0) {
-      # add NAs for original features if available
-      if (ncol(timeseries) > n_old_features) {
-        timeseries[missingInd, (n_old_features+1):ncol(timeseries)] <- NA
+    # Check to see if need to interpolate any missing frames
+    if (any(diff(frame_ids) > 1)) {
+      # CALCULATE SUMMARY STATISTICS
+      stats = apply(timeseries, 2, summaryStats)
+      
+      # Add NAs for missing frames
+      missing_frame_ids <- setdiff(seq(min(frame_ids), max(frame_ids)), frame_ids)
+      missing_frames <- data.frame(FrameID=missing_frame_ids)
+      for (col in colnames(timeseries)) {
+        missing_frames[[col]] <- NA
       }
+      timeseries <- cbind(FrameID=frame_ids, timeseries)
+      # merge missing frames into main df and drop FrameID
+      timeseries <- rbind(timeseries, missing_frames)
+      timeseries <- timeseries[order(timeseries$FrameID), ]
+      timeseries <- timeseries[, -1]
+      
       # INTERPOLATE MISSING VALUES
       timeseries = apply(timeseries, 2, interpolate)
-      # CALCULATE SUMMARY STATISTICS
-      stats = apply(timeseries[-missingInd, ], 2, summaryStats)
     } else {
       # CALCULATE SUMMARY STATISTICS
       stats = apply(timeseries, 2, summaryStats)

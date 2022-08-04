@@ -84,6 +84,7 @@ new_features <- new_features |> arrange(CellID, FrameID)
 cols_to_compare <- setdiff(colnames(old_feat_df_nomissing), c("CellID", "framenum"))
 
 # This shouldn't raise any exception
+# Using are_equal to allow for a tolerance in floats
 for (col in cols_to_compare) {
   assertthat::are_equal(new_features[[col]], old_feat_df_nomissing[[col]])
 }
@@ -102,8 +103,12 @@ colnames(tsvariables) <- gsub("dens_", "Den_", colnames(tsvariables))
 # The old CellIDs are stored separately
 ids_to_use <- old_ids %in% unique(new_features$CellID)
 
-comp <- sapply(colnames(tsvariables), function(x) all(tsvariables[[x]] == old_ts[, x]))
-# Nope this has changed a fair bit!
-table(comp)
+# Raises error if not equal
+# Again using are_equal to allow for tolerance in floats
+for (col in colnames(tsvariables)) {
+  assertthat::are_equal(tsvariables[[col]], old_ts[, col])
+}
 
-# TODO compare on trajArea too
+# Finally compare on trajArea, which is now calculated inside varsFromTimeSeries()
+# Test passed
+assertthat::are_equal(tsvariables$trajArea, old_ts[, "trajArea"])
