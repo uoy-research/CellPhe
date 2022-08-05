@@ -2,7 +2,7 @@
 % Please edit documentation in R/extractFeatures.R
 \name{copyPhaseFeatures}
 \alias{copyPhaseFeatures}
-\title{Copy features from an existing PhaseFocus feature table}
+\title{Copy cell-frame features from an existing PhaseFocus table}
 \usage{
 copyPhaseFeatures(file, minframes)
 }
@@ -13,20 +13,19 @@ copyPhaseFeatures(file, minframes)
 be included in the output features.}
 }
 \value{
-A list of length N, where N is the number of cells tracked for at
-least \code{minframes}, with the following entries:
+A dataframe with 1 row corresponding to 1 cell tracked in 1 frame
+with the following columns:
 \itemize{
-\item{\code{original_ID}: the cell ID from the input file}
-\item{\code{cell_missing}: a vector of 1s and 0s with length equal to the
-number of frames the cell is tracked over, where a missing frame has a 1
-and a non-missing frame 0}
-\item{\code{cell_ft}: a matrix of copied features for each frame of each cell}
+\item{\code{frameID}: the numeric frameID}
+\item{\code{cellID}: the numeric cellID}
+\item{\code{Volume}: a real-valued number}
+\item{\code{Sphericity}: a real-valued number}
 }
 }
 \description{
-Copy chosen values from a feature table of pre-calculated features as output
+Copies volume and sphericity from a feature table of pre-calculated features as output
 by PhaseFocus software. Only the values for the features volume and
 sphericity, which require phase information, are copied as all other features
 can be calculated by \code{extractFeatures}. Only cells that are tracked for
-a minimum of \code{minframes} are copied into the new feature table.
+a minimum of \code{minframes} are included.
 }

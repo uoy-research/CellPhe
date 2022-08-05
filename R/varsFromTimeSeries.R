@@ -3,74 +3,90 @@
 #' Reads in the time series for any pre-existing features as well as the 
 #' output of \code{extractFeatures}. Variables are calculated from the time series, 
 #' providing both summary statistics and indicators of time-series behaviour 
-#' at different levels of detail obtained via wavelet analysis. Name is an 
-#' experiment identifier, used together with the cell identifiers in 
-#' original_IDs to provide rownames in the output matrix.
-#' @param features A list of matrices, the same as the output from \code{copyPhaseFeatures}
-#' @param new_features A list of two lists, the same as the output from \code{copyFeatures}
-#' @param originalIDs A list of integers
-#' @return A matrix with cells in rows and variables describing their behaviour over time in columns.
+#' at different levels of detail obtained via wavelet analysis. 
+#' @param df A data frame, the same as the output from \code{extractFeatures}.
+#' @return A data frame with cells in rows and variables describing their behaviour over time in columns.
 #' @export
-varsFromTimeSeries = function(features, new_features, originalIDs){
-	trajArea = new_features[[1]]
-
-	num = length(new_features[[2]])
-	timeseries <- vector(mode = "list", length = num)
-	
-	  numcols <- 1109 + ncol(features[[1]]) + 1 # Last column for ID
-    output = matrix(NA, nrow = num, ncol = numcols)
-	
-	for (j in 1:num){
-     	timeseries[[j]] = cbind(features[[j]], new_features[[2]][[j]])
-        numvars = dim(timeseries[[j]])[2]
- 
-		stats <- matrix(NA, nrow = 3, ncol = numvars)
-		eleVars <- matrix(NA, nrow = 3, ncol = numvars)
-		wVars <- matrix(NA, nrow = 9, ncol = numvars)
-
-        # Use first column of newfeatures which may have additional frames considered "missing"
-        firstnewfeature = ncol(features[[j]])+1
-    	missingInd = which(is.na(timeseries[[j]][,firstnewfeature]) == T)
-        
-        if (length(missingInd) > 0){
-		    # add NAs for original features
-		    timeseries[[j]][missingInd,1:ncol(features[[j]])] = NA
-			# INTERPOLATE MISSING VALUES
-			timeseries[[j]] = apply(timeseries[[j]], 2, interpolate)
-  			# CALCULATE SUMMARY STATISTICS 
-			stats = apply(timeseries[[j]][-missingInd,], 2, summaryStats)
-  	    }
-  	    else {
-  			# CALCULATE SUMMARY STATISTICS 
-			stats = apply(timeseries[[j]], 2, summaryStats)  	    
-  	    }
- 
-  		# CALCULATE ASCENT, DESCENT AND MAX
-  		eleVars = apply(timeseries[[j]], 2, elevationVars)
-  		# CALCULATE VARIABLES FROM 3 LEVELS OF WAVELET DETAIL COEFFICIENTS
-   		wVars = apply(timeseries[[j]], 2, waveVars)  
-
-	    vars = rbind(stats, eleVars, wVars)
-	    cn = colnames(vars)
-  		rn = c("mean", "std", "skew", "asc", "des", "max", "l1_asc", "l1_des", "l1_max","l2_asc", "l2_des", "l2_max", "l3_asc", "l3_des", "l3_max")
-  		name_perms <- expand.grid(rn, cn)
-  		names <- paste(name_perms$Var2, name_perms$Var1, sep="_")
-  		names <- c(names, "trajArea")
-      #  names = rep(NA, length = (length(cn)*length(rn)+1))
-      #  m = 1
-      #  for (i in 1:length(cn)){
-      #  	for (k in 1:length(rn)){
-      #         names[m] = paste(cn[i], rn[k], sep = "_")
-      #         m = m+1
-      #      }
-      #  }
-      #  names[m] = "trajArea"
-        output[j, 1] <- originalIDs[[j]]
-  	    output[j, 2:(numcols-1)] = as.vector(vars)
-        output[j, numcols] = trajArea[[j]]
-        colnames(output) = c("ID", names)
-	}
-    return(output)
+varsFromTimeSeries = function(df) {
+  cell_ids <- unique(df$CellID)
+  num_cells = length(cell_ids)
+  
+  n_ts_vars <- 15
+  n_old_features <- 72
+  # Dataframe at minimum is 72 features, 2 id cols, 2 coord cols
+  n_new_features <- ncol(df) - (n_old_features + 2 + 2)
+  # Have a time-series summary for each feature + CellID + trajArea
+  numcols <- n_ts_vars * (n_old_features + n_new_features) + 1 + 1
+  output = matrix(NA, nrow = num_cells, ncol = numcols)
+  
+  for (j in 1:num_cells) {
+    cell_id <- cell_ids[j]
+    timeseries = df[ df$CellID == cell_id, setdiff(colnames(df), c("CellID", "FrameID", "xcentres", "ycentres"))]
+    frame_ids <- df$FrameID[df$CellID == cell_id]
+    numvars = dim(timeseries)[2]
+    
+    stats <- matrix(NA, nrow = 3, ncol = numvars)
+    eleVars <- matrix(NA, nrow = 3, ncol = numvars)
+    wVars <- matrix(NA, nrow = 9, ncol = numvars)
+    
+    # Check to see if need to interpolate any missing frames
+    if (any(diff(frame_ids) > 1)) {
+      # CALCULATE SUMMARY STATISTICS
+      stats = apply(timeseries, 2, summaryStats)
+      
+      # Add NAs for missing frames
+      missing_frame_ids <- setdiff(seq(min(frame_ids), max(frame_ids)), frame_ids)
+      missing_frames <- data.frame(FrameID=missing_frame_ids)
+      for (col in colnames(timeseries)) {
+        missing_frames[[col]] <- NA
+      }
+      timeseries <- cbind(FrameID=frame_ids, timeseries)
+      # merge missing frames into main df and drop FrameID
+      timeseries <- rbind(timeseries, missing_frames)
+      timeseries <- timeseries[order(timeseries$FrameID), ]
+      timeseries <- timeseries[, -1]
+      
+      # INTERPOLATE MISSING VALUES
+      timeseries = apply(timeseries, 2, interpolate)
+    } else {
+      # CALCULATE SUMMARY STATISTICS
+      stats = apply(timeseries, 2, summaryStats)
+    }
+    
+    # CALCULATE ASCENT, DESCENT AND MAX
+    eleVars = apply(timeseries, 2, elevationVars)
+    # CALCULATE VARIABLES FROM 3 LEVELS OF WAVELET DETAIL COEFFICIENTS
+    wVars = apply(timeseries, 2, waveVars)
+    
+    vars = rbind(stats, eleVars, wVars)
+    output[j, 1] <- cell_id
+    output[j, 2:(numcols - 1)] = as.vector(vars)
+    output[j, numcols] = calculateTrajArea(df$xcentres[df$CellID == cell_id], df$ycentres[df$CellID == cell_id])
+  }
+  cn = colnames(vars)
+  rn = c(
+    "mean",
+    "std",
+    "skew",
+    "asc",
+    "des",
+    "max",
+    "l1_asc",
+    "l1_des",
+    "l1_max",
+    "l2_asc",
+    "l2_des",
+    "l2_max",
+    "l3_asc",
+    "l3_des",
+    "l3_max"
+  )
+  name_perms <- expand.grid(rn, cn)
+  names <- paste(name_perms$Var2, name_perms$Var1, sep = "_")
+  names <- c(names, "trajArea")
+  colnames(output) = c("CellID", names)
+  res_df <- as.data.frame(output)
+  res_df
 }
 
 summaryStats = function(v){
@@ -148,7 +164,7 @@ detVars = function(v){
 
 interpolate <- function(v)
 {
-  nframes <- length(v)
+    nframes <- length(v)
     while (is.na(v[nframes]) == T){
       v = v[-nframes]
       nframes = nframes - 1
