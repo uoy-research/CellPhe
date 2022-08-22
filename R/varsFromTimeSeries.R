@@ -35,9 +35,9 @@ varsFromTimeSeries = function(df) {
     stats = apply(timeseries, 2, summaryStats)
     
     # Check to see if need to interpolate any missing frames
-    if (any(diff(frame_ids) > 1)) {
+    missing_frame_ids <- setdiff(seq(min(frame_ids), max(frame_ids)), frame_ids)
+    if (length(missing_frame_ids) > 1) {
       # Add NAs for missing frames
-      missing_frame_ids <- setdiff(seq(min(frame_ids), max(frame_ids)), frame_ids)
       missing_frames <- data.frame(FrameID=missing_frame_ids)
       for (col in colnames(timeseries)) {
         missing_frames[[col]] <- NA
