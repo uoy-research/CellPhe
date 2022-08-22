@@ -4,16 +4,15 @@ library(tidyverse)
 trial_name <- "05062019_B3_3"
 basedir <- "data"
 
-imagedata <- sprintf("%s/%s_imagedata", basedir, trial_name)
-frames <- readTiffs(imagedata)
 min_frames <- 200
 input_feature_table <- sprintf("%s/%s_Phase-FullFeatureTable.csv", basedir, trial_name)
-feature_table <- copyFeatures(input_feature_table, min_frames)
+feature_table <- copyFeatures(input_feature_table, min_frames, source="Phase")
 
-roi_files <- sprintf("%s/%s_Phase", basedir, trial_name)
-new_features <- extractFeatures(feature_table, frames, roi_files, min_frames, framerate=0.0028)
+roi_folder <- sprintf("%s/%s_Phase", basedir, trial_name)
+frame_folder <- sprintf("%s/%s_imagedata", basedir, trial_name)
+new_features <- extractFeatures(feature_table, roi_folder, frame_folder, framerate=0.0028)
 
-tsvariables = varsFromTimeSeries(new_features)
+tsvariables <- varsFromTimeSeries(new_features)
 
 ############## Benchmark extractFeatures
 old_feat <- readRDS("tests/expected_output2/extractFeatures_output.rds")

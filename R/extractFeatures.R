@@ -168,9 +168,9 @@ prepareMiniImage = function(rois, frames) {
 #' along with any additional features.
 #' @param roi_folder A path to a directory containing multiple Report Object Instance
 #' (ROI) files named in the format \code{cellid}-\code{frameid}.roi
-#' @param frames The frames themselves, a list of TIFF images.
-#' @param min_frames The minimum number of frames a cell must be tracked for to
-#' be included in the output features.
+#' @param frame_folder A path to a directory containing multiple frames in TIFF format.
+#' It is assumed these are named under the pattern \code{<experiment name>-<frameid>.tif}, where 
+#' \code{<frameid>} is a 4 digit zero-padded integer.
 #' @return A dataframe with 76 columns and 1 row per cell per frame it's present in:
 #' \itemize{
 #'   \item{\code{frameID}: the numeric frameID}
@@ -182,9 +182,8 @@ prepareMiniImage = function(rois, frames) {
 #' }
 #' @export
 extractFeatures = function(df,
-                           frames,
                            roi_folder,
-                           min_frames,
+                           frame_folder,
                            framerate = 1) {
   n_cells <- length(unique(df$CellID))
   all_features <- vector(mode = "list", length = n_cells)
@@ -192,107 +191,115 @@ extractFeatures = function(df,
   RandA <- vector(mode = "list", length = n_cells)
   meanr = rep(NA, n_cells)
   
-  normalised_frames = lapply(frames, normaliseImage, lower = 0, upper = 255)
-  for (j in 1:n_cells) {
-    idj = unique(df$CellID)[j]
-    frame_ids <-
-      df |> dplyr::filter(CellID == idj) |> dplyr::distinct(FrameID) |> dplyr::pull(FrameID)
-    nframes = length(frame_ids)
+  mfeature_cols <- c("Dis", "Trac", "D2T", "Vel")
+  bfeature_cols <- c(
+    "Rad",
+    "VfC",
+    "Curv",
+    "Len",
+    "Wid",
+    "Area",
+    "A2B",
+    "Box",
+    "Rect",
+    "poly1",
+    "poly2",
+    "poly3",
+    "poly4"
+  )
+  
+  tfeature_cols <- c(
+    "FOmean",
+    "FOsd",
+    "FOskew",
+    "Cooc01ASM",
+    "Cooc01Con",
+    "Cooc01IDM",
+    "Cooc01Ent",
+    "Cooc01Cor",
+    "Cooc01Var",
+    "Cooc01Sav",
+    "Cooc01Sen",
+    "Cooc01Den",
+    "Cooc01Dva",
+    "Cooc01Sva",
+    "Cooc01f13",
+    "Cooc01Sha",
+    "Cooc01Pro",
+    "Cooc12ASM",
+    "Cooc12Con",
+    "Cooc12IDM",
+    "Cooc12Ent",
+    "Cooc12Cor",
+    "Cooc12Var",
+    "Cooc12Sav",
+    "Cooc12Sen",
+    "Cooc12Den",
+    "Cooc12Dva",
+    "Cooc12Sva",
+    "Cooc12f13",
+    "Cooc12Sha",
+    "Cooc12Pro",
+    "Cooc02ASM",
+    "Cooc02Con",
+    "Cooc02IDM",
+    "Cooc02Ent",
+    "Cooc02Cor",
+    "Cooc02Var",
+    "Cooc02Sav",
+    "Cooc02Sen",
+    "Cooc02Den",
+    "Cooc02Dva",
+    "Cooc02Sva",
+    "Cooc02f13",
+    "Cooc02Sha",
+    "Cooc02Pro",
+    "IQ1",
+    "IQ2",
+    "IQ3",
+    "IQ4",
+    "IQ5",
+    "IQ6",
+    "IQ7",
+    "IQ8",
+    "IQ9"
+  )
+  
+  # SHAPE FEATURES FROM BOUNDARIES:
+  bfeatures = matrix(NA, nrow = nrow(df), ncol = length(bfeature_cols))
+  colnames(bfeatures) = bfeature_cols
+  
+  # TEXTURE FEATURES FROM INTERIOR PIXELS:
+  tfeatures = matrix(NA, nrow = nrow(df), ncol = length(tfeature_cols))
+  colnames(tfeatures) <- tfeature_cols
+  
+  xcentres <- rep(NA, nrow(df))
+  ycentres <- rep(NA, nrow(df))
+  ids <- matrix(NA, nrow=nrow(df), ncol=2)
+  colnames(ids) <- c("CellID", "FrameID")
+  
+  all_frame_ids <- unique(df$FrameID)
+  row_num <- 1
+  for (frame_id in all_frame_ids) {
+    # Find all Cells that feature in this FrameID
+    cell_ids <-
+      df |> dplyr::filter(FrameID == frame_id) |> dplyr::distinct(CellID) |> dplyr::pull(CellID)
+    n_cells <- length(cell_ids)
     
-    # MOVEMENT FEATURES:
-    mfeatures = matrix(NA, nrow = nframes, ncol = 4)
-    colnames(mfeatures) = c("Dis", "Trac", "D2T", "Vel")
-    
-    # SHAPE FEATURES FROM BOUNDARIES:
-    bfeatures = matrix(NA, nrow = nframes, ncol = 13)
-    colnames(bfeatures) = c(
-      "Rad",
-      "VfC",
-      "Curv",
-      "Len",
-      "Wid",
-      "Area",
-      "A2B",
-      "Box",
-      "Rect",
-      "poly1",
-      "poly2",
-      "poly3",
-      "poly4"
-    )
-    
-    # TEXTURE FEATURES FROM INTERIOR PIXELS:
-    tfeatures = matrix(NA, nrow = nframes, ncol = 54)
-    colnames(tfeatures) = c(
-      "FOmean",
-      "FOsd",
-      "FOskew",
-      "Cooc01ASM",
-      "Cooc01Con",
-      "Cooc01IDM",
-      "Cooc01Ent",
-      "Cooc01Cor",
-      "Cooc01Var",
-      "Cooc01Sav",
-      "Cooc01Sen",
-      "Cooc01Den",
-      "Cooc01Dva",
-      "Cooc01Sva",
-      "Cooc01f13",
-      "Cooc01Sha",
-      "Cooc01Pro",
-      "Cooc12ASM",
-      "Cooc12Con",
-      "Cooc12IDM",
-      "Cooc12Ent",
-      "Cooc12Cor",
-      "Cooc12Var",
-      "Cooc12Sav",
-      "Cooc12Sen",
-      "Cooc12Den",
-      "Cooc12Dva",
-      "Cooc12Sva",
-      "Cooc12f13",
-      "Cooc12Sha",
-      "Cooc12Pro",
-      "Cooc02ASM",
-      "Cooc02Con",
-      "Cooc02IDM",
-      "Cooc02Ent",
-      "Cooc02Cor",
-      "Cooc02Var",
-      "Cooc02Sav",
-      "Cooc02Sen",
-      "Cooc02Den",
-      "Cooc02Dva",
-      "Cooc02Sva",
-      "Cooc02f13",
-      "Cooc02Sha",
-      "Cooc02Pro",
-      "IQ1",
-      "IQ2",
-      "IQ3",
-      "IQ4",
-      "IQ5",
-      "IQ6",
-      "IQ7",
-      "IQ8",
-      "IQ9"
-    )
-    
-    xcentres <- rep(NA, nframes)
-    ycentres <- rep(NA, nframes)
-    frameIds <- rep(NA, nframes)
-    
-    for (i in 1:nframes) {
-      frame_id <- frame_ids[i]
-      frame = normalised_frames[[frame_id]]
-      
+    # Load frame into memory
+    tiff_fn <- list.files(frame_folder, pattern = sprintf(".*-%04d.tif$", frame_id), full.names = TRUE)
+    if (length(tiff_fn) != 1) {
+      stop("Cannot find tif for frame id %d in %s. Check that the filename convention is as expected (?extractFeatures).", frame_id, frame_folder)
+    }
+    frame <- normaliseImage(tiff::readTIFF(tiff_fn), lower=0, upper=255)
+  
+    for (cell_id in cell_ids) {
+      ids[row_num, ] <- c(cell_id, frame_id)
       roi_fn <-
-        df |> dplyr::filter(CellID == idj, FrameID == frame_id) |> dplyr::distinct(ROI_filename) |> dplyr::pull(ROI_filename)
+        df |> dplyr::filter(CellID == cell_id, FrameID == frame_id) |> dplyr::distinct(ROI_filename) |> dplyr::pull(ROI_filename)
       if (length(roi_fn) > 1) {
         stop("Error: found more than one ROI filename for Cell %d and Frame %d",
-             idj,
+             cell_id,
              frame_id)
       }
       roi = RImageJROI::read.ijroi(sprintf("%s/%s.roi", roi_folder, roi_fn))
@@ -304,82 +311,47 @@ extractFeatures = function(df,
       if ((w < 8) | (h < 8)) {
         next
       }
-      
-      frameIds[i] = frame_id
+    
       # EXTRACT SUB-IMAGE, MASK, CELL PIXELS AND BOUNDARY COORDINATES FOR SPECIFIC CELL:
       sub_image_info = subImageInfo(roi, frame)
       cell_pixels = sub_image_info[[5]]
       interior_pixels = sub_image_info[[6]]
       boundary_coordinates = sub_image_info[[7]]
-      xcentres[i] = sub_image_info[[8]][1]
-      ycentres[i] = sub_image_info[[8]][2]
-      
-      # MOVEMENT FEATURES
-      
-      if (i == 1) {
-        mfeatures[i, 1] = 0.0
-        mfeatures[i, 2] = 0.0
-        mfeatures[i, 3] = 0.0
-        mfeatures[i, 4] = 0.0
-        # KEEP STARTING POSITION FOR DISPLACEMENT
-        startx = xcentres[i]
-        starty = ycentres[i]
-        keepframenum = i
-      }
-      else {
-        # DISPLACEMENT
-        mfeatures[i, 1] = sqrt((xcentres[i] - startx) * (xcentres[i] - startx) + (ycentres[i] - starty) *
-                                 (ycentres[i] - starty)
-        )
-        # STORE DISTANCE BETWEEN FRAMES
-        dist = sqrt((xcentres[i] - xcentres[keepframenum]) * (xcentres[i] - xcentres[keepframenum]) + (ycentres[i] - ycentres[keepframenum]) *
-                      (ycentres[i] - ycentres[keepframenum])
-        )
-        # TRACKLENGTH
-        mfeatures[i, 2] = mfeatures[keepframenum, 2] + dist
-        # FRAMEWISE DISPLACEMENT TO TRACKLENGTH RATIO
-        mfeatures[i, 3] = mfeatures[i, 1] / mfeatures[i, 2]
-        mfeatures[!is.finite(mfeatures[i, 3]), 3] = 0
-        # VELOCITY
-        numframes <- frame_ids[i] - frame_ids[i - 1]
-        mfeatures[i, 4] = framerate * dist / numframes
-        keepframenum = i
-      }
+      xcentres[row_num] = sub_image_info[[8]][1]
+      ycentres[row_num] = sub_image_info[[8]][2]
       
       # SHAPE FEATURES
-      
       vfc = varFromCentre(boundary_coordinates)
       # AVERAGE RADIUS
-      bfeatures[i, 1] = vfc[1]
+      bfeatures[row_num, 1] = vfc[1]
       # VARIANCE ON BOUNDARY PIXEL DISTANCES FROM CELL CENTRE:
-      bfeatures[i, 2] = vfc[2]
+      bfeatures[row_num, 2] = vfc[2]
       # MEASURE OF BOUNDARY CURVATURE:
-      bfeatures[i, 3] = curvature(boundary_coordinates, 4)
+      bfeatures[row_num, 3] = curvature(boundary_coordinates, 4)
       # WIDTH AND HEIGHT OF MINIMAL BOX:
       box = minBox(boundary_coordinates)
-      bfeatures[i, 4] = box[1]
-      bfeatures[i, 5] = box[2]
+      bfeatures[row_num, 4] = box[1]
+      bfeatures[row_num, 5] = box[2]
       # AREA, CALCULATED FROM THE MINI-IMAGE:
-      bfeatures[i, 6] = nrow(cell_pixels)
+      bfeatures[row_num, 6] = nrow(cell_pixels)
       # AREA TO BOUNDARY RATIO:
       bl = boundary_coordinates$length
-      bfeatures[i, 7] = bfeatures[i, 6] / (bl * bl)
+      bfeatures[row_num, 7] = bfeatures[row_num, 6] / (bl * bl)
       # MINIMAL BOX TO AREA RATIO:
-      bfeatures[i, 8] = (box[1] * box[2]) / bfeatures[i, 3]
+      bfeatures[row_num, 8] = (box[1] * box[2]) / bfeatures[row_num, 3]
       # RECTANGULARITY:
       m = max(box[1], box[2])
-      bfeatures[i, 9] = m / (box[1] + box[2])
+      bfeatures[row_num, 9] = m / (box[1] + box[2])
       # FITTED POLYGON FEATURES (MAX_SIDE, MIN_ANGLE, ANGLE_VARIANCE, SIDE_LENGTH_VARIANCE)
       for (k in 1:4) {
-        bfeatures[i, (k + 9)] = polyClass(boundary_coordinates)[k]
+        bfeatures[row_num, (k + 9)] = polyClass(boundary_coordinates)[k]
       }
       
       # TEXTURE FEATURES
-      
       # FIRST ORDER FEATURES
-      tfeatures[i, 1] = mean(cell_pixels[, 3])
-      tfeatures[i, 2] = sqrt(stats::var(cell_pixels[, 3]))
-      tfeatures[i, 3] = e1071::skewness(cell_pixels[, 3], type = 2)
+      tfeatures[row_num, 1] = mean(cell_pixels[, 3])
+      tfeatures[row_num, 2] = sqrt(stats::var(cell_pixels[, 3]))
+      tfeatures[row_num, 3] = e1071::skewness(cell_pixels[, 3], type = 2)
       # CALCULATE COOCCURRENCES MATRICES
       cooccurrence_levels = 10
       cooc = cooccur(sub_image_info, cooccurrence_levels)
@@ -391,40 +363,55 @@ extractFeatures = function(df,
       haralickfeatures02 <-
         calculateHaralickFeatures(cooc$cooc12)
       for (k in 1:14) {
-        tfeatures[i, (k + 3)] = haralickfeatures01[k]
-        tfeatures[i, (k + 17)] = haralickfeatures12[k]
-        tfeatures[i, (k + 31)] = haralickfeatures02[k]
+        tfeatures[row_num, (k + 3)] = haralickfeatures01[k]
+        tfeatures[row_num, (k + 17)] = haralickfeatures12[k]
+        tfeatures[row_num, (k + 31)] = haralickfeatures02[k]
       }
       # INTENSITY QUANTILE FEATURES
       quantileVars = intensityQuantiles(boundary_coordinates, interior_pixels)
       for (k in 1:9) {
-        tfeatures[i, (k + 45)] = quantileVars[[k]]
+        tfeatures[row_num, (k + 45)] = quantileVars[[k]]
       }
+    
+      row_num <- row_num + 1
     }
-    centroids[[j]] = cbind(xcentres, ycentres)
-    RandA[[j]] =  cbind(frameIds, bfeatures[, 1], bfeatures[, 6])
-    all_features[[j]] = cbind(CellID = idj,
-                              FrameID = frame_ids,
-                              mfeatures,
-                              bfeatures,
-                              tfeatures)
-    # These 3 all have the same number of rows and in theory could return in a single
-    # dataframe, but centroids and RandA are only used as intermediary steps and
-    # not output to the user so maybe best to keep separate for now
   }
-  for (j in 1:n_cells) {
-    # This could also be moved into the upper loop
-    meanr[j] = mean(RandA[[j]][, 2], na.rm = TRUE)
-  }
-  meanrad = mean(meanr)
+  # Combine and add movement features
+  res <- cbind(ids, bfeatures, tfeatures, xpos=xcentres, ypos=ycentres) |> as.data.frame()
+  res <- res |> 
+    dplyr::arrange(CellID, FrameID) |>
+    dplyr::group_by(CellID) |> 
+    dplyr::mutate(startx = xpos[which.min(FrameID)],
+           starty = ypos[which.min(FrameID)],
+           Dis = sqrt((xpos - startx)**2 + (ypos - starty)**2),
+           dist_timestamp = sqrt((xpos - dplyr::lag(xpos))**2 + (ypos - dplyr::lag(ypos))**2),
+           dist_timestamp = ifelse(FrameID == min(FrameID), 0, dist_timestamp),
+           Trac = cumsum(dist_timestamp),
+           D2T = Dis / Trac,
+           D2T = ifelse(is.infinite(D2T) | is.nan(D2T), 0, D2T),
+           Vel = (framerate * dist_timestamp) / (FrameID - lag(FrameID, default=0))) |>
+    dplyr::ungroup() |>
+    dplyr::select(-startx, -starty, -dist_timestamp)
+    
+  meanrad <- res |> 
+    dplyr::group_by(CellID) |> 
+    summarise(meanr = mean(Rad, na.rm=T)) |>
+    ungroup() |>
+    summarise(meanrad = mean(meanr, na.rm=T)) |>
+    pull(meanrad)
   
-  # CALCULATE DENSITY FOR EACH CELL
-  res <- do.call('rbind', lapply(1:n_cells, function(j) {
-    feat_df <- as.data.frame(all_features[[j]])
-    feat_df$dens <- densityCalc(j, centroids, RandA, meanrad)
-    feat_df <- cbind(feat_df, centroids[[j]])
-    feat_df
-  }))
+  ## CALCULATE DENSITY FOR EACH CELL
+  # TODO can I refactor this to just take columns?
+  #res <- do.call('rbind', lapply(1:n_cells, function(j) {
+  #  feat_df <- as.data.frame(all_features[[j]])
+  #  feat_df$dens <- densityCalc(j, centroids, RandA, meanrad)
+  #  feat_df <- cbind(feat_df, centroids[[j]])
+  #  feat_df
+  #}))
+  # TODO add the movement features
+  # TODO do the density stuff
+  ############################################################
+  
   df |> dplyr::inner_join(res, by = c("CellID", "FrameID"))
 }
 

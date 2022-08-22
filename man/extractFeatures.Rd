@@ -4,20 +4,19 @@
 \alias{extractFeatures}
 \title{Calculates cell features from timelapse videos}
 \usage{
-extractFeatures(df, frames, roi_folder, min_frames, framerate = 1)
+extractFeatures(df, roi_folder, frame_folder, framerate = 1)
 }
 \arguments{
 \item{df}{DataFrame where every row corresponds to a combination of a cell
 tracked in a frame. It must have at least columns \code{CellID} and \code{FrameID},
 along with any additional features.}
 
-\item{frames}{The frames themselves, a list of TIFF images.}
-
 \item{roi_folder}{A path to a directory containing multiple Report Object Instance
 (ROI) files named in the format \code{cellid}-\code{frameid}.roi}
 
-\item{min_frames}{The minimum number of frames a cell must be tracked for to
-be included in the output features.}
+\item{frame_folder}{A path to a directory containing multiple frames in TIFF format.
+It is assumed these are named under the pattern \code{<experiment name>-<frameid>.tif}, where
+\code{<frameid>} is a 4 digit zero-padded integer.}
 }
 \value{
 A dataframe with 76 columns and 1 row per cell per frame it's present in:
