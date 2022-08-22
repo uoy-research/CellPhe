@@ -174,10 +174,6 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
       frame_ids <- df |> dplyr::filter(CellID == idj) |> dplyr::distinct(FrameID) |> dplyr::pull(FrameID)
 	    nframes = length(frame_ids)		
 
-			# READ IN ROIS FOR SPECIFIC CELL:
-	    # TODO specify both frameID and cellID
-			rois = readRois(roi_folder, cellId = idj)
-
 			# MOVEMENT FEATURES:
 			mfeatures = matrix(NA, nrow = nframes, ncol = 4)
 			colnames(mfeatures) = c("Dis", "Trac", "D2T", "Vel")
@@ -200,15 +196,24 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
   	    	frameIds <- rep(NA, nframes)
 
 			for (i in 1:nframes){
-					frame = normalised_frames[[rois[[i]]$frameId]]
-					roi = rois[[i]]
+			    frame_id <- frame_ids[i]
+					frame = normalised_frames[[frame_id]]
+					
+          roi_fn <- df |> dplyr::filter(CellID == idj, FrameID == frame_id) |> dplyr::distinct(ROI_filename) |> dplyr::pull(ROI_filename)
+          if (length(roi_fn) > 1) {
+            stop("Error: found more than one ROI filename for Cell %d and Frame %d", idj, frame_id)
+          }
+          roi = RImageJROI::read.ijroi(sprintf("%s/%s.roi", roi_folder, roi_fn))
+					# It is possible to have negative coordinates
+          roi$coords[which(roi$coords < 0)] = 0
 					# check whether cell too small in either direction
-					w = roi$xrange[2]- roi$xrange[1]+1
-					h = roi$yrange[2]- roi$yrange[1]+1
-					if ((w < 8)|(h < 8)){
+          w = max(roi$coords[,1])- min(roi$coords[,1])+1
+          h = max(roi$coords[,2])- min(roi$coords[,2])+1
+					if ((w < 8)|(h < 8)) {
 					  next
 					}
-	 					frameIds[i] = roi$frameId
+                
+	 					frameIds[i] = frame_id
 						# EXTRACT SUB-IMAGE, MASK, CELL PIXELS AND BOUNDARY COORDINATES FOR SPECIFIC CELL:
 						sub_image_info = subImageInfo(roi, frame)
 						cell_pixels = sub_image_info[[5]]
@@ -317,7 +322,6 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
       feat_df <- cbind(feat_df, centroids[[j]])
       feat_df
   }))
-	# TODO could use base::merge instead of adding dplyr dependency
 	df |> dplyr::inner_join(res, by=c("CellID", "FrameID"))
 }
 
