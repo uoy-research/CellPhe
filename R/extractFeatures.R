@@ -322,16 +322,16 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
 }
 
 subImageInfo = function(roi, frame) {
-	sub_image = frame[(roi$yrange[1]+1):(roi$yrange[2]+1),(roi$xrange[1]+1):(roi$xrange[2]+1)]
+	sub_image = frame[(min(roi$coords[,2])+1):(max(roi$coords[,2])+1),(min(roi$coords[,1])+1):(max(roi$coords[,1])+1)]
 
-    width = roi$xrange[2]- roi$xrange[1]+1
-    height = roi$yrange[2]- roi$yrange[1]+1
+    width = max(roi$coords[,1])- min(roi$coords[,1])+1
+    height = max(roi$coords[,2])- min(roi$coords[,2])+1
 	pixel_type = as.list(rep(1, width*height))
 
     # EXTRACT BOUNDARY PIXELS
     length = roi$n
-	x = roi$coords[,1]-roi$xrange[1]+1
-	y = roi$coords[,2]-roi$yrange[1]+1
+  	x = roi$coords[,1]- min(roi$coords[,1])+1
+  	y = roi$coords[,2]- min(roi$coords[,2])+1
     newbcs = cbind(x,y)
     xycoords = list(length, x, y)
     names(xycoords) <- c("length", "x", "y")  
@@ -339,10 +339,11 @@ subImageInfo = function(roi, frame) {
     # CELL CENTROID
     cx = mean(roi$coords[,1])
     cy = mean(roi$coords[,2])
+
     centroid = cbind(cx, cy)
 
     # ADD BOUNDARY TO PIXEL_TYPE
-	pixel_type = as.list(rep(1, width*height))
+  	pixel_type = as.list(rep(1, width*height))
     inds <- (xycoords[[2]]-1)*height + xycoords[[3]]
     pixel_type[inds] = 0
 
@@ -387,7 +388,6 @@ subImageInfo = function(roi, frame) {
      		n = n+1
  		}
  	}
-  
   
     # IDENTIFY INTERIOR PIXELS (WITHIN, BUT NOT ON THE CELL BOUNDARY)
 	cellpixels = intensities[which(intensities[,4] != -1),1:3]
