@@ -8,6 +8,7 @@
 #' @return A data frame with cells in rows and variables describing their behaviour over time in columns.
 #' @export
 varsFromTimeSeries = function(df) {
+  df <- df[complete.cases(df), ]
   cell_ids <- unique(df$CellID)
   num_cells = length(cell_ids)
   
@@ -29,11 +30,12 @@ varsFromTimeSeries = function(df) {
     eleVars <- matrix(NA, nrow = 3, ncol = numvars)
     wVars <- matrix(NA, nrow = 9, ncol = numvars)
     
+    # CALCULATE SUMMARY STATISTICS
+    # Can do this before the interpolation as missing frames aren't included in summary stats anyway
+    stats = apply(timeseries, 2, summaryStats)
+    
     # Check to see if need to interpolate any missing frames
     if (any(diff(frame_ids) > 1)) {
-      # CALCULATE SUMMARY STATISTICS
-      stats = apply(timeseries, 2, summaryStats)
-      
       # Add NAs for missing frames
       missing_frame_ids <- setdiff(seq(min(frame_ids), max(frame_ids)), frame_ids)
       missing_frames <- data.frame(FrameID=missing_frame_ids)
@@ -48,10 +50,7 @@ varsFromTimeSeries = function(df) {
       
       # INTERPOLATE MISSING VALUES
       timeseries = apply(timeseries, 2, interpolate)
-    } else {
-      # CALCULATE SUMMARY STATISTICS
-      stats = apply(timeseries, 2, summaryStats)
-    }
+    } 
     
     # CALCULATE ASCENT, DESCENT AND MAX
     eleVars = apply(timeseries, 2, elevationVars)
