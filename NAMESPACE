@@ -2,7 +2,7 @@
 
 export(calculateSeparationScores)
 export(cellPopulationClassification)
-export(copyPhaseFeatures)
+export(copyFeatures)
 export(extractFeatures)
 export(identifyHeterogeneousClusters)
 export(normaliseImage)

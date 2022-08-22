@@ -8,7 +8,7 @@ imagedata <- sprintf("%s/%s_imagedata", basedir, trial_name)
 frames <- readTiffs(imagedata)
 min_frames <- 200
 input_feature_table <- sprintf("%s/%s_Phase-FullFeatureTable.csv", basedir, trial_name)
-feature_table <- copyPhaseFeatures(input_feature_table, min_frames)
+feature_table <- copyFeatures(input_feature_table, min_frames)
 
 roi_files <- sprintf("%s/%s_Phase", basedir, trial_name)
 new_features <- extractFeatures(feature_table, frames, roi_files, min_frames, framerate=0.0028)

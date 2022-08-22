@@ -13,15 +13,15 @@ varsFromTimeSeries = function(df) {
   
   n_ts_vars <- 15
   n_old_features <- 72
-  # Dataframe at minimum is 72 features, 2 id cols, 2 coord cols
-  n_new_features <- ncol(df) - (n_old_features + 2 + 2)
+  # Dataframe at minimum is 72 features, 3 id cols, 2 coord cols
+  n_new_features <- ncol(df) - (n_old_features + 3 + 2)
   # Have a time-series summary for each feature + CellID + trajArea
   numcols <- n_ts_vars * (n_old_features + n_new_features) + 1 + 1
   output = matrix(NA, nrow = num_cells, ncol = numcols)
   
   for (j in 1:num_cells) {
     cell_id <- cell_ids[j]
-    timeseries = df[ df$CellID == cell_id, setdiff(colnames(df), c("CellID", "FrameID", "xcentres", "ycentres"))]
+    timeseries = df[ df$CellID == cell_id, setdiff(colnames(df), c("CellID", "FrameID", "ROI_filename", "xcentres", "ycentres"))]
     frame_ids <- df$FrameID[df$CellID == cell_id]
     numvars = dim(timeseries)[2]
     

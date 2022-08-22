@@ -129,39 +129,6 @@ prepareMiniImage = function(rois, frames) {
   lapply(rois, function(roi) {applyRoiMask(roi, frames[[roi[["frameId"]]]])})
 }
 
-#' Copy cell-frame features from an existing PhaseFocus table
-#' 
-#' Copies volume and sphericity from a feature table of pre-calculated features as output
-#' by PhaseFocus software. Only the values for the features volume and 
-#' sphericity, which require phase information, are copied as all other features
-#' can be calculated by \code{extractFeatures}. Only cells that are tracked for
-#' a minimum of \code{minframes} are included. 
-#' 
-#' @param file The filepath to a CSV file containing features output by PhaseFocus software.
-#' @param minframes The minimum number of frames a cell must be tracked for to
-#' be included in the output features.
-#' @return A dataframe with 1 row corresponding to 1 cell tracked in 1 frame 
-#' with the following columns:
-#' \itemize{
-#'   \item{\code{frameID}: the numeric frameID}
-#'   \item{\code{cellID}: the numeric cellID}
-#'   \item{\code{Volume}: a real-valued number}
-#'   \item{\code{Sphericity}: a real-valued number}
-#' }
-#' @export
-copyPhaseFeatures = function(file, minframes){
-	full_ft <- read.csv(file, header=TRUE, skip=1, stringsAsFactors = FALSE)
-	out <- full_ft[, c("Frame", "Tracking.ID", "Volume..µm..", "Sphericity...")]
-	colnames(out) <- c("FrameID", "CellID", "Volume", "Sphericity")
-	
-	# Restrict to cells which are in minimum number of frames
-	out_sub <- out |>
-	    dplyr::group_by(CellID) |>
-	    dplyr::filter(dplyr::n() >= minframes) |>
-	    dplyr::ungroup()
-}
-
-
 #' Calculates cell features from timelapse videos
 #' 
 #' Calculates 1109 features related to size, shape, texture and movement for each
@@ -351,7 +318,7 @@ extractFeatures = function(df, frames, roi_folder, min_frames, framerate=1){
       feat_df
   }))
 	# TODO could use base::merge instead of adding dplyr dependency
-	res |> dplyr::inner_join(df, by=c("CellID", "FrameID"))
+	df |> dplyr::inner_join(res, by=c("CellID", "FrameID"))
 }
 
 subImageInfo = function(roi, frame) {
