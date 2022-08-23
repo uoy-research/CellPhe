@@ -305,7 +305,6 @@ extractFeatures = function(df,
       w = max(roi$coords[, 1]) - min(roi$coords[, 1]) + 1
       h = max(roi$coords[, 2]) - min(roi$coords[, 2]) + 1
       
-      # TODO is this error properly handled? could end up with too many unused rows at the end?
       if ((w < 8) | (h < 8)) {
         next
       }
@@ -381,6 +380,7 @@ extractFeatures = function(df,
   # Combine and add movement features
   res <- cbind(ids, bfeatures, tfeatures, xpos=xcentres, ypos=ycentres) |> as.data.frame()
   res <- res |> 
+    filter(!is.na(CellID), !is.na(FrameID)) |>  # Removes any frames with missing ROIs
     dplyr::arrange(CellID, FrameID) |>
     dplyr::group_by(CellID) |> 
     dplyr::mutate(startx = xpos[which.min(FrameID)],
