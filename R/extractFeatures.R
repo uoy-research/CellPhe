@@ -186,10 +186,6 @@ extractFeatures = function(df,
                            frame_folder,
                            framerate = 1) {
   n_cells <- length(unique(df$CellID))
-  all_features <- vector(mode = "list", length = n_cells)
-  centroids <- vector(mode = "list", length = n_cells)
-  RandA <- vector(mode = "list", length = n_cells)
-  meanr = rep(NA, n_cells)
   
   mfeature_cols <- c("Dis", "Trac", "D2T", "Vel")
   bfeature_cols <- c(
@@ -308,6 +304,8 @@ extractFeatures = function(df,
       # check whether cell too small in either direction
       w = max(roi$coords[, 1]) - min(roi$coords[, 1]) + 1
       h = max(roi$coords[, 2]) - min(roi$coords[, 2]) + 1
+      
+      # TODO is this error properly handled? could end up with too many unused rows at the end?
       if ((w < 8) | (h < 8)) {
         next
       }
@@ -335,11 +333,14 @@ extractFeatures = function(df,
       # AREA, CALCULATED FROM THE MINI-IMAGE:
       bfeatures[row_num, 6] = nrow(cell_pixels)
       # AREA TO BOUNDARY RATIO:
+      # TODO vectorised
       bl = boundary_coordinates$length
       bfeatures[row_num, 7] = bfeatures[row_num, 6] / (bl * bl)
       # MINIMAL BOX TO AREA RATIO:
+      # TODO vectorised
       bfeatures[row_num, 8] = (box[1] * box[2]) / bfeatures[row_num, 3]
       # RECTANGULARITY:
+      # TODO vectorised
       m = max(box[1], box[2])
       bfeatures[row_num, 9] = m / (box[1] + box[2])
       # FITTED POLYGON FEATURES (MAX_SIDE, MIN_ANGLE, ANGLE_VARIANCE, SIDE_LENGTH_VARIANCE)
@@ -361,6 +362,7 @@ extractFeatures = function(df,
       haralickfeatures12 <-
         calculateHaralickFeatures(cooc$cooc12)
       haralickfeatures02 <-
+        # TODO is this a typo? should it be cooc02?
         calculateHaralickFeatures(cooc$cooc12)
       for (k in 1:14) {
         tfeatures[row_num, (k + 3)] = haralickfeatures01[k]
@@ -392,26 +394,21 @@ extractFeatures = function(df,
            Vel = (framerate * dist_timestamp) / (FrameID - lag(FrameID, default=0))) |>
     dplyr::ungroup() |>
     dplyr::select(-startx, -starty, -dist_timestamp)
-    
-  meanrad <- res |> 
-    dplyr::group_by(CellID) |> 
-    summarise(meanr = mean(Rad, na.rm=T)) |>
-    ungroup() |>
-    summarise(meanrad = mean(meanr, na.rm=T)) |>
-    pull(meanrad)
+
+  # Calculate density
+  cell_ids <- unique(res$CellID)
+  centroids <- lapply(cell_ids, function(id) {
+    sub_df <- res |> filter(CellID == id)
+    cbind(sub_df[, c('xpos', 'ypos')])
+  })
+  frameAndRadius <- lapply(cell_ids, function(id) {
+    sub_df <- res |> filter(CellID == id)
+    cbind(sub_df[, c('FrameID', 'Rad')])
+  })
   
-  ## CALCULATE DENSITY FOR EACH CELL
-  # TODO can I refactor this to just take columns?
-  #res <- do.call('rbind', lapply(1:n_cells, function(j) {
-  #  feat_df <- as.data.frame(all_features[[j]])
-  #  feat_df$dens <- densityCalc(j, centroids, RandA, meanrad)
-  #  feat_df <- cbind(feat_df, centroids[[j]])
-  #  feat_df
-  #}))
-  # TODO add the movement features
-  # TODO do the density stuff
-  ############################################################
-  
+  res$dens <- unlist(lapply(1:length(unique(res$CellID)), function(j) {
+    densityCalc(j, centroids, frameAndRadius)
+  }))
   df |> dplyr::inner_join(res, by = c("CellID", "FrameID"))
 }
 
@@ -898,60 +895,38 @@ intensityQuantiles = function(bc, intensities)
   return(quantileVars)
 }
 
-densityCalc = function(jj, centroids, RandA, avrad) {
+densityCalc = function(jj, centroids, FandA) {
   ncells = length(centroids)
   nframesjj = length(centroids[[jj]][, 1])
-  diam = 2 * avrad
   density = rep(0, nframesjj)
   for (i in 1:nframesjj) {
-    f = RandA[[jj]][i, 1]
-    if (is.na(f) == T) {
+    f = FandA[[jj]][i, 1]
+    if (is.na(f)) {
       density[i] = NA
     }
     else{
       x = centroids[[jj]][i, 1]
       y = centroids[[jj]][i, 2]
-      r = RandA[[jj]][i, 2]
-      #  DISTANCE TO OTHER CELLS
+      lim = 6 * FandA[[jj]][i, 2]
+      #  SUM OF DISTANCES TO OTHER CLOSE CELLS
+      dsum = 0
       for (k in 1:ncells) {
         if (k != jj) {
           nframesk = length(centroids[[k]][, 1])
           for (j in 1:nframesk) {
-            f1 = RandA[[k]][j, 1]
-            if ((f1 == f) & (is.na(f1) == F)) {
+            f1 = FandA[[k]][j, 1]
+            if ((f1 == f) & (!is.na(f1))) {
               x1 = centroids[[k]][j, 1]
               y1 = centroids[[k]][j, 2]
-              r1 = RandA[[k]][j, 2]
-              dist = sqrt(((x - x1) ^ 2) + ((y - y1) ^ 2))
-              standard = r + diam + r1
-              # d IS THE HEIGHT OF THE CIRCULAR SEGMENT OF THE NEARBY CELL TO BE INCLUDED IN THE DENSITY CALCULATION
-              d = standard - dist
-              if (dist < standard) {
-                swap = 0
-                if (d > r1) {
-                  d = d - r1
-                  swap = 1
-                }
-                # ANGLE SUBTENDED AT CENTRE
-                alpha = abs(2 * cos((r1 - d) / r1))
-                # PROPORTION OF CELL WITHIN CLOSE REGION
-                prop = 1.0 / (2 * pi * (alpha - sin(alpha)))
-                # SEE IF MORE THAN HALF THE CELL IS IN CLOSE REGION
-                if (swap == 1) {
-                  prop = 1 - prop
-                }
-                # IF ENTIRE CELL INSIDE CLOSE REGION
-                if (standard > (dist + r1))
-                  prop = 1.0
-                A1 = RandA[[k]][j, 3]
-                # AREA AROUND FIRST CELL
-                A = 2 * pi * diam * (diam + 2 * r)
-                density[i] = density[i] + 100.0 * prop * A1 / A
+              d = sqrt(((x - x1) ^ 2) + ((y - y1) ^ 2))
+              if ((d > 0) & (d < lim)) {
+                dsum = dsum + 1 / d
               }
             }
           }
         }
       }
+      density[i] = dsum
     }
   }
   return(density)
