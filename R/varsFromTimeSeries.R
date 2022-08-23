@@ -27,8 +27,8 @@ varsFromTimeSeries = function(df) {
                                                     "CellID",
                                                     "FrameID",
                                                     "ROI_filename",
-                                                    "xcentres",
-                                                    "ycentres"
+                                                    "xpos",
+                                                    "ypos"
                                                   ))]
     frame_ids <- df$FrameID[df$CellID == cell_id]
     numvars = dim(timeseries)[2]
@@ -44,7 +44,7 @@ varsFromTimeSeries = function(df) {
     # Check to see if need to interpolate any missing frames
     missing_frame_ids <-
       setdiff(seq(min(frame_ids), max(frame_ids)), frame_ids)
-    if (length(missing_frame_ids) > 1) {
+    if (length(missing_frame_ids) > 0) {
       # Add NAs for missing frames
       missing_frames <- data.frame(FrameID = missing_frame_ids)
       for (col in colnames(timeseries)) {
@@ -68,7 +68,7 @@ varsFromTimeSeries = function(df) {
     vars = rbind(stats, eleVars, wVars)
     output[j, 1] <- cell_id
     output[j, 2:(numcols - 1)] = as.vector(vars)
-    output[j, numcols] = calculateTrajArea(df$xcentres[df$CellID == cell_id], df$ycentres[df$CellID == cell_id])
+    output[j, numcols] = calculateTrajArea(df$xpos[df$CellID == cell_id], df$ypos[df$CellID == cell_id])
   }
   cn = colnames(vars)
   rn = c(
