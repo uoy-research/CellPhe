@@ -395,20 +395,12 @@ extractFeatures = function(df,
     dplyr::ungroup() |>
     dplyr::select(-startx, -starty, -dist_timestamp)
 
-  # Calculate density
-  cell_ids <- unique(res$CellID)
-  centroids <- lapply(cell_ids, function(id) {
-    sub_df <- res |> filter(CellID == id)
-    cbind(sub_df[, c('xpos', 'ypos')])
-  })
-  frameAndRadius <- lapply(cell_ids, function(id) {
-    sub_df <- res |> filter(CellID == id)
-    cbind(sub_df[, c('FrameID', 'Rad')])
-  })
-  
-  res$dens <- unlist(lapply(1:length(unique(res$CellID)), function(j) {
-    densityCalc(j, centroids, frameAndRadius)
-  }))
+  # Calculate density 
+  dens <- densityCalc(res)
+  # Merge back in, cells-frames with NA mean they have 0 density
+  res <- res |> 
+    dplyr::left_join(dens, by=c("CellID"="cell1", "FrameID")) |>
+    dplyr::mutate(dens = ifelse(is.na(dens), 0, dens))
   df |> dplyr::inner_join(res, by = c("CellID", "FrameID"))
 }
 
@@ -895,41 +887,25 @@ intensityQuantiles = function(bc, intensities)
   return(quantileVars)
 }
 
-densityCalc = function(jj, centroids, FandA) {
-  ncells = length(centroids)
-  nframesjj = length(centroids[[jj]][, 1])
-  density = rep(0, nframesjj)
-  for (i in 1:nframesjj) {
-    f = FandA[[jj]][i, 1]
-    if (is.na(f)) {
-      density[i] = NA
-    }
-    else{
-      x = centroids[[jj]][i, 1]
-      y = centroids[[jj]][i, 2]
-      lim = 6 * FandA[[jj]][i, 2]
-      #  SUM OF DISTANCES TO OTHER CLOSE CELLS
-      dsum = 0
-      for (k in 1:ncells) {
-        if (k != jj) {
-          nframesk = length(centroids[[k]][, 1])
-          for (j in 1:nframesk) {
-            f1 = FandA[[k]][j, 1]
-            if ((f1 == f) & (!is.na(f1))) {
-              x1 = centroids[[k]][j, 1]
-              y1 = centroids[[k]][j, 2]
-              d = sqrt(((x - x1) ^ 2) + ((y - y1) ^ 2))
-              if ((d > 0) & (d < lim)) {
-                dsum = dsum + 1 / d
-              }
-            }
-          }
-        }
-      }
-      density[i] = dsum
-    }
-  }
-  return(density)
+densityCalc = function(df, radius_threshold=6) {
+  # Calculate distance matrices between each cell for each Frame
+  dists <- do.call('rbind', lapply(unique(df$FrameID), function(id) {
+    sub_df <- df |> dplyr::filter(FrameID == id)
+    dists <- as.matrix(dist(sub_df[, c('xpos', 'ypos')], diag=TRUE, upper=TRUE))
+    dists <- as.data.frame(dists)
+    colnames(dists) <- sub_df$CellID
+    dists$cell1 <- sub_df$CellID
+    dists |> 
+      tidyr::pivot_longer(-cell1, names_to="cell2", values_to="dist") |> 
+      dplyr::mutate(FrameID = id)
+  }))
+  # Use the Rad column from the original dataframe to subset to cells that are close to each other
+  dists |>
+    dplyr::inner_join(df |> select(FrameID, CellID, Rad), by=c("cell1"="CellID", "FrameID")) |>
+    dplyr::filter(dist < radius_threshold * Rad, dist > 0) |>
+    dplyr::group_by(FrameID, cell1) |>
+    dplyr::summarise(dens = sum(1/dist)) |>
+    dplyr::ungroup()
 }
 
 calculateTrajArea <- function(x, y)
