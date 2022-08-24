@@ -5,10 +5,8 @@
 #'made via a voting system, where a cell is classified as segmentation error if more than a defined \code{proportion} of decision trees predict it as such. This code outputs a list
 #'of cells that were classified as segmentation error.
 #'
-#' @param smalldata Output from \code{prepareSegmentationTrainingSet()} - feature table of either segmentation errors or correctly segmented cells, whichever has the \bold{lowest} sample size
-#' @param bigdata Output from \code{prepareSegmentationTrainingSet()} - feature table of either segmentation errors or correctly segmented cells, whichever has the \bold{greatest} sample size
-#' @param smallclass Output from \code{prepareSegmentationTrainingSet()} - list of class labels for the class with the smallest sample size
-#' @param bigclass Output from \code{prepareSegmentationTrainingSet()} - list of class labels for the class with the largest sample size
+#' @param segerrors A feature table of ground truth segmentation errors
+#' @param correctsegs A feature table of ground truth correctly segmented cells
 #' @param num Number of decision trees to be trained
 #' @param testset Test set for segmentation error predictions to be made
 #' @param dataID List of test set identifiers (e.g. cell IDs)
@@ -16,11 +14,15 @@
 #'
 #' @return This function returns the list of identifiers that were predicted as segmentation errors
 #'
-#' @examples segmentation_errors <- predictSegErrors(segerrordata, correctsegdata, segerrorlabels, correctseglabels, 50, testset, testset$cellnames, 0.7)
 #' @export
-predictSegErrors<-function(smalldata, bigdata, smallclass, bigclass,
+predictSegErrors<-function(segerrors, correctsegs,
                            num, testset, dataID, proportion) 
 { 
+  seginfo<-prepareSegmentationTrainingSet(segerrors, correctsegs)
+  smalldata = seginfo[[1]]
+  bigdata = seginfo[[2]]
+  smallclass = seginfo[[3]]
+  bigclass = seginfo[[4]]
   n1 = length(smallclass)
   n2 = length(bigclass)
   treelist = list()
