@@ -8,8 +8,7 @@
 #'
 #' @return This function returns a matrix of classification results. Columns 1, 2, 3 and 4 contain test set predictions from LDA, RF, SVM and the ensemble respectively.
 #' @export
-#'
-#' @examples classificationresults<-cellPopulationClassification(dataset1, dataset2, dataset1CellTypes)
+#' 
 cellPopulationClassification<-function(TrainingSet, TestSet, TrainingLabels)
 {
   dataforscaling<-rbind(TrainingSet, TestSet)
