@@ -152,20 +152,17 @@ prepareMiniImage = function(rois, frames) {
 
 #' Calculates cell features from timelapse videos
 #'
-#' Calculates 1109 features related to size, shape, texture and movement for each
+#' Calculates 74 features related to size, shape, texture and movement for each
 #' cell on every non-missing frame, as well as the cell density around each
-#' cell on each frame and a measure describing the trajectory of the cell
-#' over all frames.
+#' cell on each frame.
+#' NB: while the ROI filenames are expected to be provided in \code{df} and found in 
+#' \code{roi_folder}, the frame filenames are just expected to follow the naming convention
+#' \code{<some text>-<FrameID>.tiff}, where FrameID is a 4 digit leading zero-padded number, corresponding 
+#' to the \code{FrameID} column in \code{df}.
 #'
-#' @details
-#' Reads in information on cell boundaries from ROI files, the cell identifiers
-#' from the original tracking (i.e. before cells tracked for less than
-#' min_frames were removed), original_IDs, information on missing frames for
-#' each cell in a list of vectors with missing frames indicated by 1 and
-#' non-missing frames by 0, missing_frames, and the normalised images for every frame, normalised_frames.
 #' @param df DataFrame where every row corresponds to a combination of a cell
-#' tracked in a frame. It must have at least columns \code{CellID} and \code{FrameID},
-#' along with any additional features.
+#' tracked in a frame. It must have at least columns \code{CellID}, \code{FrameID} and
+#' \code{ROI_filename} along with any additional features.
 #' @param roi_folder A path to a directory containing multiple Report Object Instance
 #' (ROI) files named in the format \code{cellid}-\code{frameid}.roi
 #' @param frame_folder A path to a directory containing multiple frames in TIFF format.
@@ -173,11 +170,10 @@ prepareMiniImage = function(rois, frames) {
 #' \code{<frameid>} is a 4 digit zero-padded integer.
 #' @return A dataframe with 76 columns and 1 row per cell per frame it's present in:
 #' \itemize{
-#'   \item{\code{frameID}: the numeric frameID}
-#'   \item{\code{cellID}: the numeric cellID}
-#'   \item{\code{...}: 72 frame specific features
-#'   \item{\code{xcentres}: the x-coordinate of the cell in that frame}
-#'   \item{\code{ycentres}: the y-coordinate of the cell in that frame}
+#'   \item{\code{FrameID}: the numeric frameID}
+#'   \item{\code{CellID}: the numeric cellID}
+#'   \item{\code{ROI_filename}: the ROI filename}
+#'   \item{\code{...}: 74 frame specific features}
 #'   \item{\code{...}: Any other data columns that were present in \code{df}}
 #' }
 #' @export
@@ -380,7 +376,7 @@ extractFeatures = function(df,
   # Combine and add movement features
   res <- cbind(ids, bfeatures, tfeatures, xpos=xcentres, ypos=ycentres) |> as.data.frame()
   res <- res |> 
-    filter(!is.na(CellID), !is.na(FrameID)) |>  # Removes any frames with missing ROIs
+    dplyr::filter(!is.na(CellID), !is.na(FrameID)) |>  # Removes any frames with missing ROIs
     dplyr::arrange(CellID, FrameID) |>
     dplyr::group_by(CellID) |> 
     dplyr::mutate(startx = xpos[which.min(FrameID)],
@@ -391,7 +387,7 @@ extractFeatures = function(df,
            Trac = cumsum(dist_timestamp),
            D2T = Dis / Trac,
            D2T = ifelse(is.infinite(D2T) | is.nan(D2T), 0, D2T),
-           Vel = (framerate * dist_timestamp) / (FrameID - lag(FrameID, default=0))) |>
+           Vel = (framerate * dist_timestamp) / (FrameID - dplyr::lag(FrameID, default=0))) |>
     dplyr::ungroup() |>
     dplyr::select(-startx, -starty, -dist_timestamp)
 
@@ -907,7 +903,7 @@ densityCalc = function(df, radius_threshold=6) {
   }))
   # Use the Rad column from the original dataframe to subset to cells that are close to each other
   dists |>
-    dplyr::inner_join(df |> select(FrameID, CellID, Rad), by=c("cell1"="CellID", "FrameID")) |>
+    dplyr::inner_join(df |> dplyr::select(FrameID, CellID, Rad), by=c("cell1"="CellID", "FrameID")) |>
     dplyr::filter(dist < radius_threshold * Rad, dist > 0) |>
     dplyr::group_by(FrameID, cell1) |>
     dplyr::summarise(dens = sum(1/dist)) |>
