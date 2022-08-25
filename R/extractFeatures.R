@@ -281,7 +281,7 @@ extractFeatures = function(df,
     # Load frame into memory
     tiff_fn <- list.files(frame_folder, pattern = sprintf(".*-%04d.tif$", frame_id), full.names = TRUE)
     if (length(tiff_fn) != 1) {
-      stop("Cannot find tif for frame id %d in %s. Check that the filename convention is as expected (?extractFeatures).", frame_id, frame_folder)
+      stop(sprintf("Cannot find tif for frame id %d in %s. Check that the filename convention is as expected (?extractFeatures).", frame_id, frame_folder))
     }
     frame <- normaliseImage(tiff::readTIFF(tiff_fn), lower=0, upper=255)
   
@@ -290,9 +290,9 @@ extractFeatures = function(df,
       roi_fn <-
         df |> dplyr::filter(CellID == cell_id, FrameID == frame_id) |> dplyr::distinct(ROI_filename) |> dplyr::pull(ROI_filename)
       if (length(roi_fn) > 1) {
-        stop("Error: found more than one ROI filename for Cell %d and Frame %d",
+        stop(sprintf("Error: found more than one ROI filename for Cell %d and Frame %d",
              cell_id,
-             frame_id)
+             frame_id))
       }
       roi = RImageJROI::read.ijroi(sprintf("%s/%s.roi", roi_folder, roi_fn))
       # It is possible to have negative coordinates
