@@ -357,8 +357,7 @@ extractFeatures = function(df,
       haralickfeatures12 <-
         calculateHaralickFeatures(cooc$cooc12)
       haralickfeatures02 <-
-        # TODO is this a typo? should it be cooc02?
-        calculateHaralickFeatures(cooc$cooc12)
+        calculateHaralickFeatures(cooc$cooc02)
       for (k in 1:14) {
         tfeatures[row_num, (k + 3)] = haralickfeatures01[k]
         tfeatures[row_num, (k + 17)] = haralickfeatures12[k]
