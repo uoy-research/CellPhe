@@ -10,6 +10,6 @@
 #' @export
 removePredictedSegErrors<-function(dataset, k, predictedSegErrors)
 {
-  testset<-subset(dataset, dataset[,k] %in% predictedSegErrors[,1] == FALSE)
+  testset<-subset(dataset, dataset[,k] %in% predictedSegErrors == FALSE)
   return(testset)
 }
