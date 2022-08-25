@@ -919,13 +919,16 @@ calculateTrajArea <- function(x, y)
   return(trajArea)
 }
 
-fill_mask = function(v) {
+fill_mask <- function(v){
   inds = which(v == 0)
-  firstzero = inds[1]
-  lastzero = inds[length(inds)]
-  if (v[1] != 0)
-    v[1:(firstzero - 1)] = -1
-  if (v[length(v)] != 0)
-    v[(lastzero + 1):length(v)] = -1
+  if (length(inds) > 0){
+    firstzero = inds[1]
+    lastzero = inds[length(inds)]
+    if (v[1] != 0) v[1:(firstzero-1)] = -1
+    if (v[length(v)] != 0) v[(lastzero+1):length(v)] = -1
+  }
+  else{
+    v = -v
+  }
   return(v)
 }
