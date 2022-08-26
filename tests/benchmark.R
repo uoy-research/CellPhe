@@ -4,16 +4,15 @@ library(tidyverse)
 trial_name <- "05062019_B3_3"
 basedir <- "data"
 
-imagedata <- sprintf("%s/%s_imagedata", basedir, trial_name)
-frames <- readTiffs(imagedata)
 min_frames <- 200
 input_feature_table <- sprintf("%s/%s_Phase-FullFeatureTable.csv", basedir, trial_name)
-feature_table <- copyPhaseFeatures(input_feature_table, min_frames)
+feature_table <- copyFeatures(input_feature_table, min_frames, source="Phase")
 
-roi_files <- sprintf("%s/%s_Phase", basedir, trial_name)
-new_features <- extractFeatures(feature_table, frames, roi_files, min_frames, framerate=0.0028)
+roi_folder <- sprintf("%s/%s_Phase", basedir, trial_name)
+frame_folder <- sprintf("%s/%s_imagedata", basedir, trial_name)
+new_features <- extractFeatures(feature_table, roi_folder, frame_folder, framerate=0.0028)
+tsvariables <- varsFromTimeSeries(new_features)
 
-tsvariables = varsFromTimeSeries(new_features)
 
 ############## Benchmark extractFeatures
 old_feat <- readRDS("tests/expected_output2/extractFeatures_output.rds")
@@ -72,9 +71,9 @@ cols <- colnames(old_feat_df_nomissing)
 cols <- c("CellID", "framenum", setdiff(cols, c("CellID", "framenum")))
 old_feat_df_nomissing <- old_feat_df_nomissing[, cols]
 
-# New dataset has those 4 more features: volume, sphericity, x, y
+# New dataset has those 4 more features: ROI_filename, volume, sphericity, x, y
 assertthat::are_equal(nrow(old_feat_df_nomissing), nrow(new_features))
-assertthat::are_equal(ncol(old_feat_df_nomissing), ncol(new_features)-4)
+assertthat::are_equal(ncol(old_feat_df_nomissing), ncol(new_features)-5)
 
 # Now can compare on the feature values after ordering them the same
 # Assuming the order of frames in the old dataframe is the same 
@@ -85,15 +84,18 @@ cols_to_compare <- setdiff(colnames(old_feat_df_nomissing), c("CellID", "framenu
 
 # This shouldn't raise any exception
 # Using are_equal to allow for a tolerance in floats
-for (col in cols_to_compare) {
+comparison <- sapply(cols_to_compare, function(col) {
   assertthat::are_equal(new_features[[col]], old_feat_df_nomissing[[col]])
-}
+})
 
-# Test passed
+# The only failure is density, but this is because the algorithm changed
+table(comparison)
+comparison[!comparison]
 
 ############## Benchmark varsFromTimeSeries
 tsvariables <- tsvariables |> dplyr::arrange(CellID)
 old_ts <- readRDS("tests/expected_output2/tsvariables_output.rds")
+# Rename columns to be consistent with old output
 colnames(tsvariables) <- gsub("CellID", "ID", colnames(tsvariables))
 colnames(tsvariables) <- gsub("Volume_", "Vol_", colnames(tsvariables))
 colnames(tsvariables) <- gsub("Sphericity_", "Sph_", colnames(tsvariables))
@@ -105,9 +107,13 @@ ids_to_use <- old_ids %in% unique(new_features$CellID)
 
 # Raises error if not equal
 # Again using are_equal to allow for tolerance in floats
-for (col in colnames(tsvariables)) {
+comparison <- sapply(colnames(tsvariables), function(col) {
   assertthat::are_equal(tsvariables[[col]], old_ts[, col])
-}
+})
+
+# The only failure is density, but again this is because the algorithm changed
+table(comparison)
+comparison[!comparison]
 
 # Finally compare on trajArea, which is now calculated inside varsFromTimeSeries()
 # Test passed
