@@ -13,14 +13,14 @@
 #' @return an optimal separation threshold
 #' 
 
-optimalSepThreshold<-function(group1data, group2data, group1name, group2name){
-thresholds = c(0,0.025,0.05,0.075,0.1,0.2,0.3,0.4,0.5)
-
-separationscores<-lapply(thresholds, CellPhe::calculateSeparationScores, group1data, group2data)
-
-ErrRate = matrix(nrow = length(thresholds), ncol = 1)
-  group1names<-rep(group1name, dim(group1data)[1])
-  group2names<-rep(group2name, dim(group2data)[1])
+optimalSepThreshold<-function(group1data, group2data){
+  thresholds = c(0,0.025,0.05,0.075,0.1,0.2,0.3,0.4,0.5)
+  
+  separationscores<-lapply(thresholds, CellPhe::calculateSeparationScores, group1data = group1data, group2data = group2data)
+  
+  ErrRate = matrix(nrow = length(thresholds), ncol = 1)
+  group1names<-rep("group1", dim(group1data)[1])
+  group2names<-rep("group2", dim(group2data)[1])
   group1<-cbind(group1names,group1data)
   colnames(group1)[colnames(group1) == 'group1names'] <- 'Group'
   group2<-cbind(group2names, group2data)
@@ -41,40 +41,40 @@ ErrRate = matrix(nrow = length(thresholds), ncol = 1)
   }
   
   Training<-rbind(group1,group2)
-
-             for (i in (1:length(thresholds)))
-             {
-               correct = 0
-               if(length(separationscores[[i]][[1]]) > 5)
-               {
-                 subtrain<-subsetBySeparationThreshold(Training, separationscores, i)
-                 classificationresults = cellPopulationClassification(subtrain, subtrain, as.factor(Training[,1]))
-                 for(j in c(1:dim(balancedTraining1())[1]))
-                 {
-                   if(classificationresults[j,4] == Training[j,1])
-                   {
-                     correct = correct+1
-                   }
-                 }
-               }
-               ErrRate[i] = 1-(correct/(dim(Training)[1]))
-             }
-
-
-
-# choosing optimal separation threshold
-
-for (i in c(1:(length(ErrRate)-1)))
-{
-  increase = (ErrRate[i+1] - ErrRate[i])*100
   
-  if((increase > 1) == TRUE)
+  for (i in (1:length(thresholds)))
   {
-    break
+    correct = 0
+    if(length(separationscores[[i]][[1]]) > 5)
+    {
+      subtrain<-subsetBySeparationThreshold(Training, separationscores, i)
+      classificationresults = cellPopulationClassification(subtrain, subtrain, as.factor(Training[,1]))
+      for(j in c(1:dim(Training)[1]))
+      {
+        if(classificationresults[j,4] == Training[j,1])
+        {
+          correct = correct+1
+        }
+      }
+    }
+    ErrRate[i] = 1-(correct/(dim(Training)[1]))
   }
-}
-
-optimal = thresholds[i-1]
-return(optimal)
-
+  
+  
+  
+  # choosing optimal separation threshold
+  
+  for (i in c(1:(length(ErrRate)-1)))
+  {
+    increase = (ErrRate[i+1] - ErrRate[i])*100
+    
+    if((increase > 1) == TRUE)
+    {
+      break
+    }
+  }
+  
+  optimal = thresholds[i-1]
+  return(optimal)
+  
 }

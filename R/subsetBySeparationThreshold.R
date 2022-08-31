@@ -1,7 +1,7 @@
 #' Only include features above a set separation threshold
 #'
 #'
-#' @description Subsets a data file to onlu include features above a set separation threshold
+#' @description Subsets a data file to only include features above a set separation threshold
 #'
 #'
 #' @param outputfile Feature table to be subsetted
