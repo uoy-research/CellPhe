@@ -687,7 +687,7 @@ waveTran2D = function(image) {
   if (ww == 1)
     temp = rbind(temp, temp[height, ])
   # do one level y transform
-  w = apply(temp, 2, daub2, (height + ww), 1)
+  w = apply(temp, 2, daub2, 1)
   # do one level x transform
   temp = w[1:((height + ww) / 2), ] / sqrt(2)
   ww = 0
@@ -695,36 +695,36 @@ waveTran2D = function(image) {
     ww = 1
   if (ww == 1)
     temp = cbind(temp, temp[, width])
-  w = apply(temp, 1, daub2, (width + ww), 1)
+  w = apply(temp, 1, daub2, 1)
   output = w[1:((width + ww) / 2), ] / sqrt(2)
   return(t(output))
 }
 
-daub2 = function(a, n, isign) {
+daub2 = function(a, isign) {
+  n <- length(a)
+  if (n < 3) return()
   D0 = 0.70710678
   D1 = 0.70710678
-  wa = c(1:n)
-  if (n >= 4) {
-    nh = n / 2
-    if (isign == 1) {
-      i = 1
-      # TODO vectorisable
-      for (j in seq(1, n, 2)) {
-        wa[i] = D0 * a[j] + D1 * a[j + 1]
-        wa[i + nh] = D1 * a[j] - D0 * a[j + 1]
-        i = i + 1
-      }
+  wa = seq(n)
+  nh = n / 2
+  if (isign == 1) {
+    i = 1
+    # TODO vectorisable
+    for (j in seq(1, n, 2)) {
+      wa[i] = D0 * a[j] + D1 * a[j + 1]
+      wa[i + nh] = D1 * a[j] - D0 * a[j + 1]
+      i = i + 1
     }
-    else if (isign == -1) {
-      j = 1
-      for (i in 1:nh) {
-        wa[j] = D0 * a[i] + D1 * a[i + nh]
-        wa[j + 1] = D1 * a[i] - D0 * a[i + nh]
-        j = j + 2
-      }
-    }
-    return(wa)
   }
+  else if (isign == -1) {
+    j = 1
+    for (i in 1:nh) {
+      wa[j] = D0 * a[i] + D1 * a[i + nh]
+      wa[j + 1] = D1 * a[i] - D0 * a[i + nh]
+      j = j + 2
+    }
+  }
+  wa
 }
 
 doubleImage = function(image) {
