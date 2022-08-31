@@ -25,7 +25,7 @@ copyFeatures = function(file,
   source <- match.arg(source)
   if (source == "Phase") {
     full_ft <-
-      read.csv(
+      utils::read.csv(
         file,
         header = TRUE,
         skip = 1,
@@ -46,7 +46,7 @@ copyFeatures = function(file,
         "Volume",
         "Sphericity")
   } else if (source == "Trackmate") {
-    full_ft <- read.csv(file, header = TRUE, stringsAsFactors = FALSE)
+    full_ft <- utils::read.csv(file, header = TRUE, stringsAsFactors = FALSE)
     # Lines 2-4 in the raw file contain additional header information and can be safely discarded
     out <- full_ft[-(1:3), c("FRAME", "TRACK_ID", "LABEL")]
     colnames(out) <- c("FrameID", "CellID", "ROI_filename")

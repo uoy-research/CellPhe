@@ -892,7 +892,7 @@ densityCalc = function(df, radius_threshold=6) {
   # Calculate distance matrices between each cell for each Frame
   dists <- do.call('rbind', lapply(unique(df$FrameID), function(id) {
     sub_df <- df |> dplyr::filter(FrameID == id)
-    dists <- as.matrix(dist(sub_df[, c('xpos', 'ypos')], diag=TRUE, upper=TRUE))
+    dists <- as.matrix(stats::dist(sub_df[, c('xpos', 'ypos')], diag=TRUE, upper=TRUE))
     dists <- as.data.frame(dists)
     colnames(dists) <- sub_df$CellID
     dists$cell1 <- sub_df$CellID

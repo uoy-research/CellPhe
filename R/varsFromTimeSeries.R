@@ -8,7 +8,7 @@
 #' @return A data frame with cells in rows and variables describing their behaviour over time in columns.
 #' @export
 varsFromTimeSeries = function(df) {
-  df <- df[complete.cases(df),]
+  df <- df[stats::complete.cases(df),]
   cell_ids <- unique(df$CellID)
   num_cells = length(cell_ids)
   
