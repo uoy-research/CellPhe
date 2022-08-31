@@ -746,18 +746,16 @@ doublevector = function(v) {
 }
 
 getCoocMatrix = function(image1, image2, mask, nc) {
-  cooc = matrix(0, nrow = nc, ncol = nc)
   image1 = rescale(image1, nc)
   image2 = rescale(image2, nc)
-  for (i in 1:nrow(image1)) {
-    # TODO vectorisable
-    for (j in 1:ncol(image1)) {
-      if (mask[i, j] != 0) {
-        cooc[image1[i, j], image2[i, j]] = cooc[image1[i, j], image2[i, j]] + 1
-      }
-    }
-  }
-  return(cooc)
+  cooc = matrix(0, nrow = nc, ncol = nc)
+  xs <- floor(image1[mask == 1])
+  ys <- floor(image2[mask == 1])
+  flattened <- xs + nc * (ys - 1)
+  flattened <- flattened[flattened > 0]
+  counts <- table(flattened)
+  cooc[as.numeric(names(counts))] <- counts
+  cooc
 }
 
 rescale = function(image, nc) {
