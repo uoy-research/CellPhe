@@ -444,15 +444,12 @@ subImageInfo = function(roi, frame) {
   # set positive neighbours to be negative
   matpix_type[neighbours][matpix_type[neighbours] == 1] <- -1
   
-  n = 1
-  intensities = matrix(nrow = width * height, ncol = 4)
-  for (i in 1:width) {
-    # TODO vectorisable
-    for (j in 1:height) {
-      intensities[n, ] = c(i, j, sub_image[j, i], matpix_type[j, i])
-      n = n + 1
-    }
-  }
+  intensities <- unname(as.matrix(
+    # expand.grid iterates over first column first, we want opposite
+    cbind(expand.grid(1:height, 1:width)[, c(2, 1)],
+    as.numeric(sub_image),
+    as.numeric(matpix_type))
+  ))
   
   # IDENTIFY INTERIOR PIXELS (WITHIN, BUT NOT ON THE CELL BOUNDARY)
   cellpixels = intensities[which(intensities[, 4] != -1), 1:3]
