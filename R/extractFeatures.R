@@ -638,18 +638,13 @@ polygon = function(bc) {
 }
 
 pointttolinedist = function(v, lc) {
-  x = v[1]
-  y = v[2]
-  # TODO vectorisable
-  numer = abs(lc[1] * x - lc[2] * y + lc[3])
+  numer = abs(lc[1] * v[1] - lc[2] * v[2] + lc[3])
   denom = lc[4]
-  dist = numer / denom
-  return (dist)
+  numer / denom
 }
 
 sqreucdist = function(v) {
-  dist = (v[1] - v[3]) * (v[1] - v[3]) + (v[2] - v[4]) * (v[2] - v[4])
-  return (dist)
+  (v[1] - v[3])**2 + (v[2] - v[4])**2
 }
 
 polyAngle = function(v) {
