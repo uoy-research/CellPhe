@@ -436,33 +436,13 @@ subImageInfo = function(roi, frame) {
   matpix_type = t(apply(matpix_type, 1, fill_mask))
   
   # CHECK NEIGHBOURS OF MASK PIXELS
-  n = 1
-  while (n > 0) {
-    n = 0
-    for (j in 2:(height - 1)) {
-      # TODO vectorisable
-      for (i in 2:(width - 1)) {
-        if (matpix_type[j, i] == -1) {
-          if (matpix_type[j - 1, i] == 1) {
-            matpix_type[j - 1, i] = -1
-            n = 1
-          }
-          if (matpix_type[j, i - 1] == 1) {
-            matpix_type[j, i - 1] = -1
-            n = 1
-          }
-          if (matpix_type[j, i + 1] == 1) {
-            matpix_type[j, i + 1] = -1
-            n = 1
-          }
-          if (matpix_type[j + 1, i] == 1) {
-            matpix_type[j + 1, i] = -1
-            n = 1
-          }
-        }
-      }
-    }
-  }
+  # find all values with -1 with x, y coords
+  neg <- which(matpix_type == -1)
+  # generate coordinates of neighbours as x+1, x-1, x+nrow, x-nrow
+  neighbours <- c(neg, neg+1, neg-1, neg+height, neg-height)
+  neighbours <- unique(neighbours[neighbours > 0 & neighbours <= length(matpix_type)])  # As might find neighbours in first row/col
+  # set positive neighbours to be negative
+  matpix_type[neighbours][matpix_type[neighbours] == 1] <- -1
   
   n = 1
   intensities = matrix(nrow = width * height, ncol = 4)
