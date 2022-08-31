@@ -168,6 +168,8 @@ prepareMiniImage = function(rois, frames) {
 #' @param frame_folder A path to a directory containing multiple frames in TIFF format.
 #' It is assumed these are named under the pattern \code{<experiment name>-<frameid>.tif}, where 
 #' \code{<frameid>} is a 4 digit zero-padded integer.
+#' @param framerate The frame-rate, used to provide a meaningful measurement unit for velocity,
+#'    otherwise a scaleless unit is implied with \code{framerate=1}.
 #' @return A dataframe with 76 columns and 1 row per cell per frame it's present in:
 #' \itemize{
 #'   \item{\code{FrameID}: the numeric frameID}
@@ -328,14 +330,14 @@ extractFeatures = function(df,
       # AREA, CALCULATED FROM THE MINI-IMAGE:
       bfeatures[row_num, 6] = nrow(cell_pixels)
       # AREA TO BOUNDARY RATIO:
-      # TODO vectorised
+      # TODO vectorisable
       bl = boundary_coordinates$length
       bfeatures[row_num, 7] = bfeatures[row_num, 6] / (bl * bl)
       # MINIMAL BOX TO AREA RATIO:
-      # TODO vectorised
+      # TODO vectorisable
       bfeatures[row_num, 8] = (box[1] * box[2]) / bfeatures[row_num, 3]
       # RECTANGULARITY:
-      # TODO vectorised
+      # TODO vectorisable
       m = max(box[1], box[2])
       bfeatures[row_num, 9] = m / (box[1] + box[2])
       # FITTED POLYGON FEATURES (MAX_SIDE, MIN_ANGLE, ANGLE_VARIANCE, SIDE_LENGTH_VARIANCE)
@@ -388,7 +390,8 @@ extractFeatures = function(df,
            D2T = ifelse(is.infinite(D2T) | is.nan(D2T), 0, D2T),
            Vel = (framerate * dist_timestamp) / (FrameID - dplyr::lag(FrameID, default=0))) |>
     dplyr::ungroup() |>
-    dplyr::select(-startx, -starty, -dist_timestamp)
+    dplyr::select(-startx, -starty, -dist_timestamp) |>
+    dplyr::select(Dis, Trac, D2T, Vel, dplyr::everything())
 
   # Calculate density 
   dens <- densityCalc(res)
@@ -437,7 +440,7 @@ subImageInfo = function(roi, frame) {
   while (n > 0) {
     n = 0
     for (j in 2:(height - 1)) {
-      # TODO slow
+      # TODO vectorisable
       for (i in 2:(width - 1)) {
         if (matpix_type[j, i] == -1) {
           if (matpix_type[j - 1, i] == 1) {
@@ -464,7 +467,7 @@ subImageInfo = function(roi, frame) {
   n = 1
   intensities = matrix(nrow = width * height, ncol = 4)
   for (i in 1:width) {
-    # TODO slow
+    # TODO vectorisable
     for (j in 1:height) {
       intensities[n, ] = c(i, j, sub_image[j, i], matpix_type[j, i])
       n = n + 1
@@ -598,7 +601,7 @@ polygon = function(bc) {
     tempArray = 1
     n = 0
     alldone = 1
-    # TODO slow
+    # TODO vectorisable
     for (k in 2:numpoints) {
       x1 = bc$x[pointArray[k - 1]]
       y1 = bc$y[pointArray[k - 1]]
@@ -660,7 +663,7 @@ polygon = function(bc) {
 pointttolinedist = function(v, lc) {
   x = v[1]
   y = v[2]
-  # TODO slow
+  # TODO vectorisable
   numer = abs(lc[1] * x - lc[2] * y + lc[3])
   denom = lc[4]
   dist = numer / denom
@@ -733,7 +736,7 @@ daub2 = function(a, n, isign) {
     nh = n / 2
     if (isign == 1) {
       i = 1
-      # TODO Slow
+      # TODO vectorisable
       for (j in seq(1, n, 2)) {
         wa[i] = D0 * a[j] + D1 * a[j + 1]
         wa[i + nh] = D1 * a[j] - D0 * a[j + 1]
@@ -775,7 +778,7 @@ getCoocMatrix = function(image1, image2, mask, nc) {
   image1 = rescale(image1, nc)
   image2 = rescale(image2, nc)
   for (i in 1:nrow(image1)) {
-    # TODO Slow
+    # TODO vectorisable
     for (j in 1:ncol(image1)) {
       if (mask[i, j] != 0) {
         cooc[image1[i, j], image2[i, j]] = cooc[image1[i, j], image2[i, j]] + 1

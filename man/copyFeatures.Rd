@@ -7,7 +7,7 @@
 copyFeatures(file, minframes, source = c("Phase", "Trackmate"))
 }
 \arguments{
-\item{file}{The filepath to a CSV file containing features output by PhaseFocus software.}
+\item{file}{The filepath to a CSV file containing features output by PhaseFocus or Trackmate software.}
 
 \item{minframes}{The minimum number of frames a cell must be tracked for to
 be included in the output features.}

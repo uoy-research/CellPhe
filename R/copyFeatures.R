@@ -4,7 +4,7 @@
 #' For PhaseFocus generated data, volume and sphericity features are also extracted.
 #' Only cells that are tracked for a minimum of \code{minframes} are included.
 #'
-#' @param file The filepath to a CSV file containing features output by PhaseFocus software.
+#' @param file The filepath to a CSV file containing features output by PhaseFocus or Trackmate software.
 #' @param minframes The minimum number of frames a cell must be tracked for to
 #' be included in the output features.
 #' @param source The name of the software that produced the metadata file, either 'Phase' or 'Trackmate'

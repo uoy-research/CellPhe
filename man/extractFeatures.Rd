@@ -17,12 +17,15 @@ tracked in a frame. It must have at least columns \code{CellID}, \code{FrameID} 
 \item{frame_folder}{A path to a directory containing multiple frames in TIFF format.
 It is assumed these are named under the pattern \code{<experiment name>-<frameid>.tif}, where
 \code{<frameid>} is a 4 digit zero-padded integer.}
+
+\item{framerate}{The frame-rate, used to provide a meaningful measurement unit for velocity,
+otherwise a scaleless unit is implied with \code{framerate=1}.}
 }
 \value{
 A dataframe with 76 columns and 1 row per cell per frame it's present in:
 \itemize{
-\item{\code{frameID}: the numeric frameID}
-\item{\code{cellID}: the numeric cellID}
+\item{\code{FrameID}: the numeric frameID}
+\item{\code{CellID}: the numeric cellID}
 \item{\code{ROI_filename}: the ROI filename}
 \item{\code{...}: 74 frame specific features}
 \item{\code{...}: Any other data columns that were present in \code{df}}
@@ -34,6 +37,6 @@ cell on every non-missing frame, as well as the cell density around each
 cell on each frame.
 NB: while the ROI filenames are expected to be provided in \code{df} and found in
 \code{roi_folder}, the frame filenames are just expected to follow the naming convention
-\code{<some text>-<frameID>.tiff}, where frameID is a 4 digit leading zero-padded number, corresponding
-to the \code{frameID} column in \code{df}.
+\code{<some text>-<FrameID>.tiff}, where FrameID is a 4 digit leading zero-padded number, corresponding
+to the \code{FrameID} column in \code{df}.
 }
