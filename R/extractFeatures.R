@@ -711,24 +711,19 @@ daub2 = function(a, isign) {
   if (n < 3) return()
   D0 = 0.70710678
   D1 = 0.70710678
-  wa = seq(n)
+  wa = numeric(n)
   nh = n / 2
+  D0_a <- D0 * a
+  D1_a <- D1 * a
+  odd <- seq(1, n, 2)
+  even <- odd + 1
   if (isign == 1) {
-    i = 1
-    # TODO vectorisable
-    for (j in seq(1, n, 2)) {
-      wa[i] = D0 * a[j] + D1 * a[j + 1]
-      wa[i + nh] = D1 * a[j] - D0 * a[j + 1]
-      i = i + 1
-    }
+    wa[1:nh] <- D0_a[even] + D1_a[odd]
+    wa[(nh+1):n] <- D1_a[odd] - D0_a[even]
   }
   else if (isign == -1) {
-    j = 1
-    for (i in 1:nh) {
-      wa[j] = D0 * a[i] + D1 * a[i + nh]
-      wa[j + 1] = D1 * a[i] - D0 * a[i + nh]
-      j = j + 2
-    }
+    wa[even] <- D0_a[1:nh] + D1_a[(nh+1):n]
+    wa[odd] <- D1_a[1:nh] - D0_a[(nh+1):n]
   }
   wa
 }
