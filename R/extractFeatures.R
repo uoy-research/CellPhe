@@ -436,13 +436,19 @@ subImageInfo = function(roi, frame) {
   matpix_type = t(apply(matpix_type, 1, fill_mask))
   
   # CHECK NEIGHBOURS OF MASK PIXELS
-  # find all values with -1 with x, y coords
-  neg <- which(matpix_type == -1)
-  # generate coordinates of neighbours as x+1, x-1, x+nrow, x-nrow
-  neighbours <- c(neg, neg+1, neg-1, neg+height, neg-height)
-  neighbours <- unique(neighbours[neighbours > 0 & neighbours <= length(matpix_type)])  # As might find neighbours in first row/col
-  # set positive neighbours to be negative
-  matpix_type[neighbours][matpix_type[neighbours] == 1] <- -1
+  while (TRUE) {
+    # find all values with -1
+    neg <- which(matpix_type == -1)
+    # generate coordinates of neighbours as x+1, x-1, x+nrow, x-nrow
+    neighbours <- c(neg, neg+1, neg-1, neg+height, neg-height)
+    neighbours <- unique(neighbours[neighbours > 0 & neighbours <= length(matpix_type)])  # As might find neighbours in first row/col
+    positive_neighbours <- neighbours[matpix_type[neighbours] == 1]
+    # set positive neighbours to be negative if any
+    if (length(positive_neighbours) == 0) {
+      break
+    }
+    matpix_type[positive_neighbours] <- -1
+  }
   
   intensities <- unname(as.matrix(
     # expand.grid iterates over first column first, we want opposite
