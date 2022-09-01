@@ -341,10 +341,7 @@ extractFeatures = function(df,
       m = max(box[1], box[2])
       bfeatures[row_num, 9] = m / (box[1] + box[2])
       # FITTED POLYGON FEATURES (MAX_SIDE, MIN_ANGLE, ANGLE_VARIANCE, SIDE_LENGTH_VARIANCE)
-      # TODO pre-calculate polyClass
-      for (k in 1:4) {
-        bfeatures[row_num, (k + 9)] = polyClass(boundary_coordinates)[k]
-      }
+      bfeatures[row_num, 10:13] <- polyClass(boundary_coordinates)
       
       # TEXTURE FEATURES
       # FIRST ORDER FEATURES
@@ -857,6 +854,7 @@ calculateHaralickFeatures = function(glcm)
 
 intensityQuantiles = function(bc, intensities)
 {
+  # TODO see if can optimise
   qs = stats::quantile(intensities[, 3], probs = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
   quantileVars <- vector(mode = "list", length = length(qs))
   for (i in 1:length(qs)) {
