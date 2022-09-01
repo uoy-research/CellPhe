@@ -583,7 +583,6 @@ polygon = function(bc) {
     tempArray = 1
     n = 0
     alldone = 1
-    # TODO vectorisable
     for (k in 2:numpoints) {
       x1 = bc$x[pointArray[k - 1]]
       y1 = bc$y[pointArray[k - 1]]
@@ -601,7 +600,7 @@ polygon = function(bc) {
         y0 = bc$y[(pointArray[k - 1] + 1):(pointArray[k] - 1)]
         v = cbind(x0, y0)
         v = stats::na.omit(v)
-        dist = apply(v, 1, pointttolinedist, lcoeffs)
+        dist <- (abs(v[, 1] * lcoeffs[1] - v[, 2] * lcoeffs[2] + lcoeffs[3])) / lcoeffs[4]
         indkeep = which(dist == max(dist))
         if (max(dist) > thresh) {
           tempArray = c(tempArray, (pointArray[k - 1] + indkeep[1]))
@@ -628,7 +627,7 @@ polygon = function(bc) {
       y0 = bc$y[(pointArray[numpoints] + 1):bc$length]
       v = cbind(x0, y0)
       v = stats::na.omit(v)
-      dist = apply(v, 1, pointttolinedist, lcoeffs)
+      dist <- (abs(v[, 1] * lcoeffs[1] - v[, 2] * lcoeffs[2] + lcoeffs[3])) / lcoeffs[4]
       indkeep = which(dist == max(dist))
       if (max(dist) > thresh) {
         tempArray = c(tempArray, (pointArray[numpoints] + indkeep[1]))
@@ -640,12 +639,6 @@ polygon = function(bc) {
     numpoints = numpoints + n
   }
   return(pointArray)
-}
-
-pointttolinedist = function(v, lc) {
-  numer = abs(lc[1] * v[1] - lc[2] * v[2] + lc[3])
-  denom = lc[4]
-  numer / denom
 }
 
 sqreucdist = function(v) {
