@@ -557,13 +557,12 @@ polyClass = function(bc) {
   mat01 = cbind(bc$x[points], bc$y[points], bc$x[points1], bc$y[points1])
   mat02 = cbind(bc$x[points], bc$y[points], bc$x[points2], bc$y[points2])
   mat12 = cbind(bc$x[points1], bc$y[points1], bc$x[points2], bc$y[points2])
-  Asq = apply(mat01, 1, sqreucdist)
-  Bsq = apply(mat12, 1, sqreucdist)
-  Csq = apply(mat02, 1, sqreucdist)
-  squaredLengths = rbind(Asq, Bsq, Csq)
-  maxLength = max(sqrt(Asq))
-  varLength = stats::var(sqrt(Asq))
-  angles = apply(squaredLengths, 2, polyAngle)
+  
+  mat_all <- array(c(mat01, mat12, mat02), dim=c(dim(mat01), 3))
+  squaredLengths <- (mat_all[, 1, ] - mat_all[, 3, ])**2 + (mat_all[, 2, ] - mat_all[, 4, ])**2
+  maxLength = max(sqrt(squaredLengths[, 1]))
+  varLength = stats::var(sqrt(squaredLengths[, 1]))
+  angles <- polyAngle(squaredLengths)
   minAngle = min(angles)
   varAngle = stats::var(angles)
   output = c(maxLength, minAngle, varAngle, varLength)
@@ -641,19 +640,11 @@ polygon = function(bc) {
   return(pointArray)
 }
 
-sqreucdist = function(v) {
-  (v[1] - v[3])**2 + (v[2] - v[4])**2
-}
-
 polyAngle = function(v) {
-  angle = 2.0 * pi
-  a = sqrt(v[1])
-  b = sqrt(v[2])
-  calc <- (v[1] + v[2] - v[3]) / (2.0 * a * b)
-  if (abs(calc - 1.0) > 0.001) {
-    angle = acos(calc)
-  }
-  return(angle)
+  a <- sqrt(v[, 1])
+  b <- sqrt(v[, 2])
+  calc <- (v[, 1] + v[, 2] - v[, 3]) / (2.0 * a * b)
+  ifelse(abs(calc - 1.0) > 0.001, acos(calc), 2.0*pi)
 }
 
 cooccur = function(mini_image_info, nc) {
