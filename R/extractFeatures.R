@@ -365,10 +365,7 @@ extractFeatures = function(df,
         tfeatures[row_num, (k + 31)] = haralickfeatures02[k]
       }
       # INTENSITY QUANTILE FEATURES
-      quantileVars = intensityQuantiles(boundary_coordinates, interior_pixels)
-      for (k in 1:9) {
-        tfeatures[row_num, (k + 45)] = quantileVars[[k]]
-      }
+      tfeatures[row_num, 46:54] <- intensityQuantiles(boundary_coordinates, interior_pixels)
     
       row_num <- row_num + 1
     }
@@ -573,6 +570,7 @@ polygon = function(bc) {
   thresh = 2.5
   # FIND MAXIMUM DISTANCE FROM FIRST BOUNDARY POINT
   d = cbind(bc$x, bc$y)
+  # TODO if only using first column then could be speed up?
   dd = as.matrix(stats::dist(d))
   indkeep = which(dd[, 1] == max(dd[, 1]))
   numpoints = 2
@@ -582,7 +580,10 @@ polygon = function(bc) {
     tempArray = 1
     n = 0
     alldone = 1
+    
     for (k in 2:numpoints) {
+      # TODO Can this be optimised?
+      # At least can move this into the if statement
       x1 = bc$x[pointArray[k - 1]]
       y1 = bc$y[pointArray[k - 1]]
       x2 = bc$x[pointArray[k]]
@@ -600,6 +601,7 @@ polygon = function(bc) {
         v = cbind(x0, y0)
         v = stats::na.omit(v)
         dist <- (abs(v[, 1] * lcoeffs[1] - v[, 2] * lcoeffs[2] + lcoeffs[3])) / lcoeffs[4]
+        # TODO which.max?
         indkeep = which(dist == max(dist))
         if (max(dist) > thresh) {
           tempArray = c(tempArray, (pointArray[k - 1] + indkeep[1]))
@@ -838,15 +840,14 @@ calculateHaralickFeatures = function(glcm)
 
 intensityQuantiles = function(bc, intensities)
 {
-  # TODO see if can optimise
+  # I've spent ages trying to optimise this by calculating the distance matrix
+  # up front to save calculating it 10 times, but the indexing or required matrix conversion
+  # is so awkward that it doesn't result in a speed up
   qs = stats::quantile(intensities[, 3], probs = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
-  quantileVars <- vector(mode = "list", length = length(qs))
-  for (i in 1:length(qs)) {
-    s = subset(intensities, intensities[, 3] >= qs[i])
-    d = as.vector(stats::dist(s[, 1:2]))
-    quantileVars[[i]] = stats::var(d) / mean(d)
-  }
-  return(quantileVars)
+  vapply(qs, function(thresh) {
+    d = stats::dist(intensities[intensities[, 3] >= thresh, 1:2])
+    stats::var(d) / mean(d)
+  }, numeric(1))
 }
 
 densityCalc = function(df, radius_threshold=6) {
