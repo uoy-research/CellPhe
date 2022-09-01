@@ -341,6 +341,7 @@ extractFeatures = function(df,
       m = max(box[1], box[2])
       bfeatures[row_num, 9] = m / (box[1] + box[2])
       # FITTED POLYGON FEATURES (MAX_SIDE, MIN_ANGLE, ANGLE_VARIANCE, SIDE_LENGTH_VARIANCE)
+      # TODO pre-calculate polyClass
       for (k in 1:4) {
         bfeatures[row_num, (k + 9)] = polyClass(boundary_coordinates)[k]
       }
@@ -352,6 +353,7 @@ extractFeatures = function(df,
       tfeatures[row_num, 3] = e1071::skewness(cell_pixels[, 3], type = 2)
       # CALCULATE COOCCURRENCES MATRICES
       cooccurrence_levels = 10
+      # TODO refactor to separate mask and image rather than passing in whole sub_image_info
       cooc = cooccur(sub_image_info, cooccurrence_levels)
       # HARALICK FEATURES
       haralickfeatures01 <-
@@ -657,8 +659,9 @@ polyAngle = function(v) {
   angle = 2.0 * pi
   a = sqrt(v[1])
   b = sqrt(v[2])
-  if (abs((v[1] + v[2] - v[3]) / (2.0 * a * b) - 1.0) > 0.001) {
-    angle = acos((v[1] + v[2] - v[3]) / (2.0 * a * b))
+  calc <- (v[1] + v[2] - v[3]) / (2.0 * a * b)
+  if (abs(calc - 1.0) > 0.001) {
+    angle = acos(calc)
   }
   return(angle)
 }
@@ -739,6 +742,7 @@ doubleImage = function(image) {
 doublevector = function(v) {
   n = length(v)
   s = rep(0, (2 * n))
+  # TODO vectorize
   for (i in 1:n) {
     s[(2 * i) - 1] = v[i]
     s[(2 * i)] = v[i]
