@@ -148,7 +148,7 @@ waveTran = function(v) {
   n = n - ww
   for (k in 1:3) {
     # DO TRANSFORM
-    newv = daub2(v, n, 1)
+    newv = daub2(v, 1)
     w[[k]] = newv[((n / 2) + 1):n]
     if (k < 3) {
       v = newv[1:(n / 2)] / sqrt(2)

@@ -13,6 +13,18 @@ frame_folder <- sprintf("%s/%s_imagedata", basedir, trial_name)
 new_features <- extractFeatures(feature_table, roi_folder, frame_folder, framerate=0.0028)
 tsvariables <- varsFromTimeSeries(new_features)
 
+# TODO test subImageInfo
+ROI_FN <- "data/05062019_B3_3_Phase/9-5.roi"
+FRAME_FN <- "data/05062019_B3_3_imagedata/05062019_B3_3_Phase-0009.tif"
+roi = RImageJROI::read.ijroi(ROI_FN)
+# It is possible to have negative coordinates
+roi$coords[which(roi$coords < 0)] = 0
+frame <- normaliseImage(tiff::readTIFF(FRAME_FN), lower=0, upper=255)
+
+out <- subImageInfo(roi, frame)
+exp <- readRDS("tests/expected_output2/subImageInfo.rds")
+lapply(1:length(out), function(i) all(out[[i]] == exp[[i]]))
+
 
 ############## Benchmark extractFeatures
 old_feat <- readRDS("tests/expected_output2/extractFeatures_output.rds")
