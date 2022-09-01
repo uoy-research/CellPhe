@@ -100,7 +100,8 @@ comparison <- sapply(cols_to_compare, function(col) {
   assertthat::are_equal(new_features[[col]], old_feat_df_nomissing[[col]])
 })
 
-# The only failure is density, but this is because the algorithm changed
+# The only failure is density and Cooc02 features, as we changed Density calculation
+# and CoocO2 was incorrectly returning wrong value before
 table(comparison)
 comparison[!comparison]
 
@@ -123,7 +124,8 @@ comparison <- sapply(colnames(tsvariables), function(col) {
   assertthat::are_equal(tsvariables[[col]], old_ts[, col])
 })
 
-# The only failure is density, but again this is because the algorithm changed
+# The only failure is density and Cooc02 derived features,
+# but again this is Cooc02 had a bug and Density calculation was changed
 table(comparison)
 comparison[!comparison]
 
