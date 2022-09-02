@@ -567,79 +567,67 @@ polyClass = function(bc) {
 }
 
 polygon = function(bc) {
+  bc_df <- data.frame(x=bc$x, y=bc$y)
   thresh = 2.5
   # FIND MAXIMUM DISTANCE FROM FIRST BOUNDARY POINT
-  d = cbind(bc$x, bc$y)
-  # TODO if only using first column then could be speed up?
-  dd = as.matrix(stats::dist(d))
-  indkeep = which(dd[, 1] == max(dd[, 1]))
-  numpoints = 2
+  dd = as.matrix(stats::dist(bc_df))
+  indkeep = which.max(dd[, 1])
   pointArray = as.vector(c(1, indkeep))
-  alldone = 0
-  while (alldone == 0) {
+  previousArray = 1
+  bc_0 = bc_df[1, ]
+  while (length(pointArray) > length(previousArray)) {
     tempArray = 1
-    n = 0
-    alldone = 1
+    numpoints <- length(pointArray)
     
     for (k in 2:numpoints) {
-      # TODO Can this be optimised?
-      # At least can move this into the if statement
-      x1 = bc$x[pointArray[k - 1]]
-      y1 = bc$y[pointArray[k - 1]]
-      x2 = bc$x[pointArray[k]]
-      y2 = bc$y[pointArray[k]]
-      # COEFFICIENTS IN EQUATION POF THE LINE
-      a = y2 - y1
-      b = x2 - x1
-      c = -a * x1 + b * y1
-      denom = sqrt(a * a + b * b)
-      lcoeffs = c(a, b, c, denom)
-      # BOUNDARY POINTS TO CHECK DISTANCE FROM
-      if ((pointArray[k] - pointArray[k - 1]) > 4) {
-        x0 = bc$x[(pointArray[k - 1] + 1):(pointArray[k] - 1)]
-        y0 = bc$y[(pointArray[k - 1] + 1):(pointArray[k] - 1)]
-        v = cbind(x0, y0)
-        v = stats::na.omit(v)
-        dist <- (abs(v[, 1] * lcoeffs[1] - v[, 2] * lcoeffs[2] + lcoeffs[3])) / lcoeffs[4]
-        # TODO which.max?
-        indkeep = which(dist == max(dist))
-        if (max(dist) > thresh) {
-          tempArray = c(tempArray, (pointArray[k - 1] + indkeep[1]))
-          alldone = 0
-          n = n + 1
-        }
+      out <- poly_distance(bc_df, pointArray, k-1, k, FALSE)
+      if (!is.na(out)) {
+        tempArray <- c(tempArray, out)
       }
+      # TODO better way to do this than vector concatenation?
       tempArray = c(tempArray, pointArray[k])
     }
     # NOW DO LINE BACK TO START
-    x1 = bc$x[pointArray[numpoints]]
-    y1 = bc$y[pointArray[numpoints]]
-    x2 = bc$x[pointArray[1]]
-    y2 = bc$y[pointArray[1]]
-    # COEFFICIENTS IN EQUATION POF THE LINE
+    out <- poly_distance(bc_df, pointArray, numpoints, 1, TRUE)
+    if (!is.na(out)) {
+      tempArray <- c(tempArray, out)
+    }
+    previousArray <- pointArray
+    pointArray <- tempArray
+  }
+  return(pointArray)
+}
+
+poly_distance <- function(df, points, i1, i2, final, thresh=2.5) {
+    if (final) {
+      end <- nrow(df)
+      end_v <- end
+    } else {
+      end <- points[i2]
+      end_v <- end - 1
+    }
+  
+    if ((end - points[i1]) <= 4) {
+      return(NA)
+    }
+    
+    # TODO can this be vectorised instead by taking the 2 arrays?
+    x1 = df$x[points[i1]]
+    y1 = df$y[points[i1]]
+    x2 = df$x[points[i2]]
+    y2 = df$y[points[i2]]
     a = y2 - y1
     b = x2 - x1
     c = -a * x1 + b * y1
     denom = sqrt(a * a + b * b)
-    lcoeffs = c(a, b, c, denom)
-    # BOUNDARY POINTS TO CHECK DISTANCE FROM
-    if ((bc$length - pointArray[numpoints]) > 4) {
-      x0 = bc$x[(pointArray[numpoints] + 1):bc$length]
-      y0 = bc$y[(pointArray[numpoints] + 1):bc$length]
-      v = cbind(x0, y0)
-      v = stats::na.omit(v)
-      dist <- (abs(v[, 1] * lcoeffs[1] - v[, 2] * lcoeffs[2] + lcoeffs[3])) / lcoeffs[4]
-      indkeep = which(dist == max(dist))
-      if (max(dist) > thresh) {
-        tempArray = c(tempArray, (pointArray[numpoints] + indkeep[1]))
-        alldone = 0
-        n = n + 1
-      }
+    v_df <- df[(points[i1]+1) : end_v, ]
+    v_df <- v_df[complete.cases(v_df), ]  # TODO is this needed?
+    dist <- (abs(v_df$x * a - v_df$y * b + c)) / denom
+    if (max(dist) > thresh) {
+      points[i1] + which.max(dist)[1]
+    } else {
+      NA
     }
-    pointArray = tempArray
-    numpoints = numpoints + n
-  }
-  return(pointArray)
 }
 
 polyAngle = function(v) {
