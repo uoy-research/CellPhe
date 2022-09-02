@@ -727,8 +727,8 @@ getCoocMatrix = function(image1, image2, mask, nc) {
   ys <- floor(image2[masked])
   positive_coordinates <- xs > 0 & ys > 0
   flattened <- xs[positive_coordinates] + nc * (ys[positive_coordinates] - 1)
-  counts <- table(flattened)
-  cooc[as.numeric(names(counts))] <- counts
+  counts <- tabulate(flattened)
+  cooc[seq_along(counts)] <- counts
   cooc
 }
 
