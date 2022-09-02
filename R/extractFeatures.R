@@ -567,14 +567,12 @@ polyClass = function(bc) {
 }
 
 polygon = function(bc) {
-  bc_df <- data.frame(x=bc$x, y=bc$y)
-  thresh = 2.5
+  bc_df <- cbind(x=bc$x, y=bc$y)
   # FIND MAXIMUM DISTANCE FROM FIRST BOUNDARY POINT
   dd = as.matrix(stats::dist(bc_df))
   indkeep = which.max(dd[, 1])
   pointArray = as.vector(c(1, indkeep))
   previousArray = 1
-  bc_0 = bc_df[1, ]
   while (length(pointArray) > length(previousArray)) {
     tempArray = 1
     numpoints <- length(pointArray)
@@ -611,20 +609,19 @@ poly_distance <- function(df, points, i1, i2, final, thresh=2.5) {
       return(NA)
     }
     
-    # TODO can this be vectorised instead by taking the 2 arrays?
-    x1 = df$x[points[i1]]
-    y1 = df$y[points[i1]]
-    x2 = df$x[points[i2]]
-    y2 = df$y[points[i2]]
-    a = y2 - y1
-    b = x2 - x1
-    c = -a * x1 + b * y1
-    denom = sqrt(a * a + b * b)
+    c1 <- df[points[i1], ]
+    c2 <- df[points[i2], ]
+    diff_rows <- rev(c2 - c1)
+    diff_rows[1] <- -diff_rows[1]
+    c_vals <- sum(diff_rows * c1)
+    denom2 <- sqrt(sum(diff_rows**2))
     v_df <- df[(points[i1]+1) : end_v, ]
-    v_df <- v_df[complete.cases(v_df), ]  # TODO is this needed?
-    dist <- (abs(v_df$x * a - v_df$y * b + c)) / denom
-    if (max(dist) > thresh) {
-      points[i1] + which.max(dist)[1]
+    v_df <- v_df[complete.cases(v_df), ]  # TODO is this needed or can it be replaced?
+    v_diff <- -v_df %*% diag(diff_rows)
+    dist2 <- abs(v_diff[, 1] + v_diff[, 2] + c_vals) / denom2
+    
+    if (max(dist2) > thresh) {
+      points[i1] + which.max(dist2)
     } else {
       NA
     }
