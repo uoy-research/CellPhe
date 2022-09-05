@@ -184,6 +184,12 @@ extractFeatures = function(df,
                            roi_folder,
                            frame_folder,
                            framerate = 1) {
+
+  required_cols <- c("FrameID", "CellID", "ROI_filename")
+  if (! all(required_cols %in% colnames(df))) {
+    stop("Columns FrameID, CellID, and ROI_filename must be present in df.")
+  }
+
   n_cells <- length(unique(df$CellID))
   
   mfeature_cols <- c("Dis", "Trac", "D2T", "Vel")
