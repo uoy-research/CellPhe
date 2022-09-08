@@ -8,7 +8,7 @@
 #'
 #' @return This function returns a matrix of classification results. Columns 1, 2, 3 and 4 contain test set predictions from LDA, RF, SVM and the ensemble respectively.
 #' @export
-#' 
+
 cellPopulationClassification<-function(TrainingSet, TestSet, TrainingLabels)
 {
   dataforscaling<-rbind(TrainingSet, TestSet)
@@ -22,9 +22,9 @@ cellPopulationClassification<-function(TrainingSet, TestSet, TrainingLabels)
   svmmodel<-e1071::svm(TrainingSet, TrainingLabels, kernel = 'radial', probability = TRUE)
   
   ## classifier testing
-  ldapred = predict(ldamodel, TestSet)
-  rfpred = predict(rfmodel, TestSet)
-  svmpred = predict(svmmodel, TestSet)
+  ldapred = stats::predict(ldamodel, TestSet)
+  rfpred = stats::predict(rfmodel, TestSet)
+  svmpred = stats::predict(svmmodel, TestSet)
   
   ## ensemble classification, final predicted label based on majority vote
   classificationvotes<-cbind(as.character(ldapred$class), as.character(rfpred), as.character(svmpred))

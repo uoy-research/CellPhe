@@ -10,8 +10,6 @@
 #' @param segerrors A feature table of ground truth segmentation errors
 #' @param correctsegs A feature table of ground truth correctly segmented cells
 #'
-#' @return a list containing all information required for use with CellPhe functions for segmentation error prediction
-#' (\code{predictSegErrors} and \code{predictSegErrors_Ensemble}.)
 #' 
 
 prepareSegmentationTrainingSet<-function(segerrors,correctsegs)

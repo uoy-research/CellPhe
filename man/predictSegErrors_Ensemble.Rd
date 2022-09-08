@@ -27,7 +27,7 @@ predictSegErrors_Ensemble(
 
 \item{num}{Number of decision trees to be trained}
 
-\item{K}{The number of repeated runs of CellPhe::predictSegErrors() to be performed}
+\item{K}{The number of repeated runs of predictSegErrors() to be performed}
 
 \item{testset}{Test set for segmentation error predictions to be made}
 
@@ -39,9 +39,6 @@ predictSegErrors_Ensemble(
 This function returns the list of identifiers that were predicted as segmentation errors, note these cells will have been predicted a segmentation error in at least \code{K/2} of the repeated classification runs
 }
 \description{
-An alternative to \code{CellPhe::predictSegErrors()}. This function trains \code{K} sets of \code{num} decision trees and uses them in ensemble to predict whether or not new cells experience segmentation errors. Predictions from each of the \code{K} sets are obtained as described in \code{predictSegErrors()}. However this function adds further stringency by repeating \code{predictSegErrors()} a number of times and a cell is given a final classification of segmentation error if it receives a vote for this class in at least half of the repeated runs. This code outputs a list
+An alternative to \code{predictSegErrors()}. This function trains \code{K} sets of \code{num} decision trees and uses them in ensemble to predict whether or not new cells experience segmentation errors. Predictions from each of the \code{K} sets are obtained as described in \code{predictSegErrors()}. However this function adds further stringency by repeating \code{predictSegErrors()} a number of times and a cell is given a final classification of segmentation error if it receives a vote for this class in at least half of the repeated runs. This code outputs a list
 of cells that were classified as segmentation error.
-}
-\examples{
-segmentation_errors <- predictSegErrors(segerrordata, correctsegdata, segerrorlabels, correctseglabels, 50, 10, testset, testset$cellnames, 0.7)
 }
