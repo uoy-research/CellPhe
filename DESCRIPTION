@@ -13,17 +13,16 @@ License: `use_mit_license()`, `use_gpl3_license()` or friends to
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
-LinkingTo: Rcpp
+RoxygenNote: 7.2.1
 Imports:
-  Rcpp,
-  RImageJROI,
-  ptinpoly,
-  tiff,
-  MASS,
-  randomForest,
+  dplyr,
   e1071,
   factoextra,
-  tree,
-  smotefamily
-Exports: Rcpp
+  ggplot2,
+  MASS,
+  ptinpoly,
+  randomForest,
+  RImageJROI,
+  smotefamily,
+  tiff,
+  tree

@@ -11,11 +11,8 @@ removePredictedSegErrors(testset, k, predictedSegErrors)
 
 \item{k}{Column index for the column of cell identifiers within the test set, e.g. if column 2 of the test set is a column of cell identifiers then here k = 2}
 
-\item{predictedSegErrors}{Output from either CellPhe::predictSegErrors() or CellPhe::predictSegErrors_Ensemble(), a list of cell identifiers for cells classified as segmentation error}
+\item{predictedSegErrors}{Output from either predictSegErrors() or predictSegErrors_Ensemble(), a list of cell identifiers for cells classified as segmentation error}
 }
 \description{
 This function can be used to automate removal of predicted segmentation errors from the test set
-}
-\examples{
-removePredictedSegErrors(testset, 2, predicted_seg_errors)
 }

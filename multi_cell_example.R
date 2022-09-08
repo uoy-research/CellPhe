@@ -1,24 +1,33 @@
-library('Rcpp')
-library('CellPhe')
+library(CellPhe)
+
+# TODO I don't have access to this file
+#name = '18112020_A3_4'
+name = '05062019_B3_3'
+basedir <- sprintf("data")
+imagedata =  sprintf("%s/%s_imagedata", basedir, name)
+input_feature_table =  sprintf("%s/%s_Phase-FullFeatureTable.csv", basedir, name)
+roi_files =  sprintf("%s/%s_Phase", basedir, name)
+outputdata =  sprintf("%s/%s_outputdata.csv", basedir, name)
 
 # READ IN IMAGE FILES, NORMALISING TO [0, 255]:
-frames = CellPhe::readTiffs('25112020_D4_5_imagedata')
+frames = CellPhe::readTiffs(imagedata)
 normalised_frames = lapply(frames, CellPhe::normaliseImage, lower = 0, upper = 255)
 
 # COPY EXISTING FEATURES FOR EACH CELL TRACKED FOR MORE THAN MIN_FRAMES AND FIND MISSING FRAMES:
+# USER MIGHT WANT TO DO THEIR OWN THING HERE FOR THEIR OWN DATASET
 min_frames = 50
-feature_table = copyFeatures('25112020_D4_5_Phase-FullFeatureTable.csv', min_frames)
+feature_table = CellPhe::copyFeatures(input_feature_table, min_frames)
 numcells_over_thresh = feature_table[[1]]
 original_IDs = feature_table[[2]]
 missing_frames = feature_table[[3]]
 features = feature_table[[4]]
 
 # CALCULATE NEW FEATURES FOR EACH CELL TRACKED FOR MORE THAN MIN_FRAMES AND FIND MISSING FRAMES:
-new_features = extractFeatures('25112020_D4_5', original_IDs, missing_frames, normalised_frames, min_frames)
+new_features = CellPhe::extractFeatures(roi_files, original_IDs, missing_frames, normalised_frames, min_frames)
 
 # CALCULATE VARIABLES FROM EACH FEATURE'S TIME-SERIES
-tsvariables = varsFromTimeSeries(features, new_features, '25112020_D4_5', original_IDs)
+tsvariables = CellPhe::varsFromTimeSeries(features, new_features, name, original_IDs)
 
 # OUTPUT TIME SERIES VARIABLES TO FILE:
-write.csv(tsvariables, "25112020_D4_5_outputdata.csv")
+write.csv(tsvariables, outputdata)
 

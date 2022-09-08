@@ -40,6 +40,3 @@ This function trains \code{num} decision trees and uses them to predict whether 
 made via a voting system, where a cell is classified as segmentation error if more than a defined \code{proportion} of decision trees predict it as such. This code outputs a list
 of cells that were classified as segmentation error.
 }
-\examples{
-segmentation_errors <- predictSegErrors(segerrordata, correctsegdata, segerrorlabels, correctseglabels, 50, testset, testset$cellnames, 0.7)
-}
