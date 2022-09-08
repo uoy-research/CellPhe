@@ -9,9 +9,7 @@
 #'
 #' @return A data frame of separation values where column 1 is a list of variable indices, column 2 a list of variable names, and column 3 the corresponding separation scores
 #' @export
-#'
-#' @export
-calculateSeparationScores<-function(group1data, group2data, threshold)
+calculateSeparationScores<-function(group1data, group2data, threshold = 0, calculateOptimalThresh = FALSE)
 {
   group1data<-as.data.frame(group1data)
   group2data<-as.data.frame(group2data)
@@ -27,7 +25,17 @@ calculateSeparationScores<-function(group1data, group2data, threshold)
     separationscores[i,3]=separation
   }
   separationscores[,3]=separationscores[,3]
-  separationscores<-subset(separationscores, separationscores[,3] >= threshold)
+  
+  if(calculateOptimalThresh == TRUE)
+  {
+    optThresh<-optimalSepThreshold(group1data, group2data)
+    separationscores<-subset(separationscores, separationscores[,3] >= optThresh)
+  }
+  
+  else
+  {
+    separationscores<-subset(separationscores, separationscores[,3] >= threshold)
+  }
   colnames(separationscores)<-c("VarIndex", "VarName", "SepScore")
   return(separationscores)
 }

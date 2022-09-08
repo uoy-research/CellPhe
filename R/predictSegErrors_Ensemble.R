@@ -12,9 +12,7 @@
 #' @param proportion Proportion of votes needed for a final classification of segmentation error to be made (e.g. 0.7 if 70% of the votes are needed for segmentation error classification to be made)
 #'
 #' @return This function returns the list of identifiers that were predicted as segmentation errors, note these cells will have been predicted a segmentation error in at least \code{K/2} of the repeated classification runs
-
 #' @export
-
 predictSegErrors_Ensemble<-function(segerrors, correctsegs, num, K, testset, dataID, proportion) 
 { 
   votes<-list()

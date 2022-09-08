@@ -4,7 +4,7 @@
 #' @description Subsets a data file to only include features above a set separation threshold
 #'
 #'
-#' @param outputfile Feature table to be subsetted
+#' @param outputfile Feature table to be subset
 #' @param separationscores list of separation scores, each element with a different separation threshold
 #' @param t which index from separation scores to use
 #'
