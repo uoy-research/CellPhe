@@ -22,7 +22,8 @@ It is assumed these are named under the pattern \code{<experiment name>-<frameid
 otherwise a scaleless unit is implied with \code{framerate=1}.}
 }
 \value{
-A dataframe with 76 columns and 1 row per cell per frame it's present in:
+A dataframe with 77+N columns (where N is the number of imported features)
+and 1 row per cell per frame it's present in:
 \itemize{
 \item{\code{FrameID}: the numeric frameID}
 \item{\code{CellID}: the numeric cellID}
