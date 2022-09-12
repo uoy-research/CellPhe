@@ -16,7 +16,6 @@ normaliseImage = function(values, lower, upper) {
   return (scale * values + offset)
 }
 
-
 #' Calculates cell features from timelapse videos
 #'
 #' Calculates 74 features related to size, shape, texture and movement for each
