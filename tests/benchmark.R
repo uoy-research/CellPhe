@@ -15,8 +15,8 @@ tsvariables <- varsFromTimeSeries(new_features)
 
 
 ############## Benchmark extractFeatures
-old_feat <- readRDS("tests/expected_output2/extractFeatures_output.rds")
-old_ids <- unlist(readRDS("tests/expected_output2/originalIDs.rds"))
+old_feat <- readRDS("tests/expected_output/extractFeatures_output.rds")
+old_ids <- unlist(readRDS("tests/expected_output/originalIDs.rds"))
 # Need to convert to dataframe for comparison
 old_feat_df <- bind_rows(setNames(lapply(old_feat[[2]], as.data.frame), old_ids), .id='CellID')
 
@@ -46,7 +46,7 @@ old_feat_df <- old_feat_df |> rename(dens=Den)
 
 # So now can investigate the number of frames issue
 # Which I think is to do with this missing frames business
-missing_frames <- readRDS("tests/expected_output2/missing_frames.rds")
+missing_frames <- readRDS("tests/expected_output/missing_frames.rds")
 # Subset this to the CellIDs that have the required number of frames available
 missing_frames <- missing_frames[old_ids %in% unique(feature_table$CellID)]
 old_ids <- old_ids[old_ids %in% unique(feature_table$CellID)]
@@ -94,7 +94,7 @@ comparison[!comparison]
 
 ############## Benchmark varsFromTimeSeries
 tsvariables <- tsvariables |> dplyr::arrange(CellID)
-old_ts <- readRDS("tests/expected_output2/tsvariables_output.rds")
+old_ts <- readRDS("tests/expected_output/tsvariables_output.rds")
 # Rename columns to be consistent with old output
 colnames(tsvariables) <- gsub("CellID", "ID", colnames(tsvariables))
 colnames(tsvariables) <- gsub("Volume_", "Vol_", colnames(tsvariables))
