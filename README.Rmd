@@ -31,11 +31,13 @@ devtools::install_github("uoy-research/CellPhe")
 
 ## Example
 
-Included with the package is an example dataset to demonstrate CellPhe's capabilities, this data is available in `data` and comprises 3 parts:
+Included with the package is an example dataset to demonstrate CellPhe's capabilities, this data is available in `example_data.zip` and comprises 3 parts:
 
-  - The time-lapse stills as TIFF images (`data/05062019_B3_3_imagedata`)
-  - Existing pre-extracted features (`data/05062019_B3_3_Phase-FullFeatureTable.csv`)
-  - Region-of-interest (ROI) boundaries already demarked in ImageJ format (`data/05062019_B3_3_Phase.zip`) 
+  - The time-lapse stills as TIFF images (`05062019_B3_3_imagedata`)
+  - Existing pre-extracted features (`05062019_B3_3_Phase-FullFeatureTable.csv`)
+  - Region-of-interest (ROI) boundaries already demarked in ImageJ format (`05062019_B3_3_Phase`)
+
+These should be extracted into a suitable location before proceeding with the rest of the tutorial.
 
 ```{r example}
 library(CellPhe)
@@ -50,10 +52,8 @@ Any features can be provided in additional columns, `copyFeatures` returns volum
 The example below creates the metadata dataframe from a PhaseFocus experimental setup, only including cells that were tracked for at least 50 frames.
 
 ```{r}
-trial_name <- "05062019_B3_3"
-basedir <- "data"
 min_frames <- 50
-input_feature_table <- sprintf("%s/%s_Phase-FullFeatureTable.csv", basedir, trial_name)
+input_feature_table <- "05062019_B3_3_Phase-FullFeatureTable.csv"
 feature_table <- copyFeatures(input_feature_table, min_frames, source="Phase")
 ```
 
@@ -63,8 +63,8 @@ The program expects frames to be named according to the scheme `<experiment name
  `<frameid>` is a 4 digit zero-padded integer corresponding to the `FrameID` column, and located in the `frame_folder` directory, while ROI files are named according to the `ROI_filename` column and located in the `roi_folder` directory.
 
 ```{r}
-roi_folder <- sprintf("%s/%s_Phase", basedir, trial_name)
-image_folder <- sprintf("%s/%s_imagedata", basedir, trial_name)
+roi_folder <- "05062019_B3_3_Phase"
+image_folder <- "05062019_B3_3_imagedata"
 new_features <- extractFeatures(feature_table, roi_folder, image_folder, framerate=0.0028)
 ```
 
