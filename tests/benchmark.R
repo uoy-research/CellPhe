@@ -1,3 +1,4 @@
+# Expects data unzipped and placed in data/
 devtools::load_all()
 library(CellPhe)
 library(tidyverse)
@@ -13,57 +14,33 @@ frame_folder <- sprintf("%s/%s_imagedata", basedir, trial_name)
 new_features <- extractFeatures(feature_table, roi_folder, frame_folder, framerate=0.0028)
 tsvariables <- varsFromTimeSeries(new_features)
 
-# TODO test subImageInfo
-ROI_FN <- "data/05062019_B3_3_Phase/9-5.roi"
-FRAME_FN <- "data/05062019_B3_3_imagedata/05062019_B3_3_Phase-0009.tif"
-roi = RImageJROI::read.ijroi(ROI_FN)
-# It is possible to have negative coordinates
-roi$coords[which(roi$coords < 0)] = 0
-frame <- normaliseImage(tiff::readTIFF(FRAME_FN), lower=0, upper=255)
-
-out <- subImageInfo(roi, frame)
-exp <- readRDS("tests/expected_output2/subImageInfo.rds")
-lapply(1:length(out), function(i) all(out[[i]] == exp[[i]]))
-
-
 ############## Benchmark extractFeatures
+results <- c()
 old_feat <- readRDS("tests/expected_output/extractFeatures_output.rds")
 old_ids <- unlist(readRDS("tests/expected_output/originalIDs.rds"))
-# Need to convert to dataframe for comparison
+# Need to convert from list to dataframe for comparison
 old_feat_df <- bind_rows(setNames(lapply(old_feat[[2]], as.data.frame), old_ids), .id='CellID')
 
 # NB: It's possible to have more cells in old dataframe than new
-# The old code counts the number of frames as the difference
+# The old code counts the number of frames per cell as the difference
 # between the max and min frame id, rather than how many rows there
 # are per cell.
-# This shows how many cells would be found with the old code,
-# which matches up with the expected output.
-# NB: the > rather than >= which I think is a bug
-read_csv("data/05062019_B3_3_Phase-FullFeatureTable.csv", skip=1) |>
-    group_by(`Tracking ID`) |> 
-    summarise(frame_diff = max(Frame) - min(Frame) + 1) |>
-    filter(frame_diff > 200) |>
-    nrow()
-
 # This test will only compare the cells present in both datasets
 old_feat_df <- old_feat_df |> filter(CellID %in% unique(feature_table$CellID))
 
-# Both functions return slightly different numbers of columns
-# The old function doesn't return:
-#   - FrameID
-#   - the Phase features of Volume and Sphericity
-#   - x-y centres
-# Density also has a different name
+# Density used to be called Den, it's now dens
 old_feat_df <- old_feat_df |> rename(dens=Den)
 
-# So now can investigate the number of frames issue
-# Which I think is to do with this missing frames business
+# There's also a discrepancy between the number of frames in both outputs
+# This is caused by the way in which 'missing_frames' are handled.
+# This was previously saved as a binary vector
 missing_frames <- readRDS("tests/expected_output/missing_frames.rds")
 # Subset this to the CellIDs that have the required number of frames available
+# using the new logic
 missing_frames <- missing_frames[old_ids %in% unique(feature_table$CellID)]
 old_ids <- old_ids[old_ids %in% unique(feature_table$CellID)]
 
-# NB: The old results have fully NA rows for frames with missing cells
+# NB: The old features have fully NA rows for frames with missing cells
 # This code removes those
 missing_df <- map_dfr(setNames(missing_frames, old_ids), 
                       function(x) tibble(framenum=1:length(x), frame_missing=x), 
@@ -83,10 +60,6 @@ cols <- colnames(old_feat_df_nomissing)
 cols <- c("CellID", "framenum", setdiff(cols, c("CellID", "framenum")))
 old_feat_df_nomissing <- old_feat_df_nomissing[, cols]
 
-# New dataset has those 4 more features: ROI_filename, volume, sphericity, x, y
-assertthat::are_equal(nrow(old_feat_df_nomissing), nrow(new_features))
-assertthat::are_equal(ncol(old_feat_df_nomissing), ncol(new_features)-5)
-
 # Now can compare on the feature values after ordering them the same
 # Assuming the order of frames in the old dataframe is the same 
 # as for the new one (that has explicit frameIDs)
@@ -94,7 +67,18 @@ old_feat_df_nomissing <- old_feat_df_nomissing |> arrange(CellID, framenum)
 new_features <- new_features |> arrange(CellID, FrameID)
 cols_to_compare <- setdiff(colnames(old_feat_df_nomissing), c("CellID", "framenum"))
 
-# This shouldn't raise any exception
+cat("\nextractFeatures\n~~~~~~~~~~~~~~~\n")
+cat(sprintf("Same number of rows (%d vs %d)\n", nrow(old_feat_df_nomissing), nrow(new_features)))
+res <- assertthat::are_equal(nrow(old_feat_df_nomissing), nrow(new_features))
+results <- c(results, res)
+res
+
+cat(sprintf("Same number of columns after accounting for ROI_filename, volume, sphericity, xpos, and ypos (%d vs %d)\n", ncol(old_feat_df_nomissing), ncol(new_features)))
+res <- assertthat::are_equal(ncol(old_feat_df_nomissing), ncol(new_features)-5)
+results <- c(results, res)
+res
+
+# Compare the feature values themselves
 # Using are_equal to allow for a tolerance in floats
 comparison <- sapply(cols_to_compare, function(col) {
   assertthat::are_equal(new_features[[col]], old_feat_df_nomissing[[col]])
@@ -102,8 +86,10 @@ comparison <- sapply(cols_to_compare, function(col) {
 
 # The only failure is density and Cooc02 features, as we changed Density calculation
 # and CoocO2 was incorrectly returning wrong value before
-table(comparison)
-comparison[!comparison]
+cat(sprintf("Columns have the same feature values after accounting for the 14 Cooc02 and 1 Density features that have had bug-fixes (%d/%d)\n", sum(comparison), length(comparison)))
+assertthat::are_equal(sum(comparison), 57)
+results <- c(results, res)
+res
 
 ############## Benchmark varsFromTimeSeries
 tsvariables <- tsvariables |> dplyr::arrange(CellID)
@@ -118,17 +104,20 @@ colnames(tsvariables) <- gsub("dens_", "Den_", colnames(tsvariables))
 # The old CellIDs are stored separately
 ids_to_use <- old_ids %in% unique(new_features$CellID)
 
-# Raises error if not equal
-# Again using are_equal to allow for tolerance in floats
+# Check feature values
 comparison <- sapply(colnames(tsvariables), function(col) {
   assertthat::are_equal(tsvariables[[col]], old_ts[, col])
 })
 
 # The only failure is density and Cooc02 derived features,
 # but again this is Cooc02 had a bug and Density calculation was changed
-table(comparison)
-comparison[!comparison]
+cat("\nvarsFromTimeSeries\n~~~~~~~~~~~~~~~~~~\n")
+cat(sprintf("Columns have the same feature values after accounting for the 15 features (x15 time-series variables) that have had bug-fixes (%d/%d)\n", sum(comparison), length(comparison)))
+assertthat::are_equal(sum(comparison), 887)
+results <- c(results, res)
+res
 
-# Finally compare on trajArea, which is now calculated inside varsFromTimeSeries()
-# Test passed
-assertthat::are_equal(tsvariables$trajArea, old_ts[, "trajArea"])
+cat("\nResults\n~~~~~~~\n")
+cat(sprintf("%d/%d tests passed\n", sum(results), length(results)))
+status <- as.integer(!all(results))
+quit(save="no", status=status)
