@@ -141,22 +141,18 @@ waveVars <- function(v)
 
 waveTran = function(v) {
   n = length(v)
-  ww = 0
   w <- vector(mode = "list", length = 3)
   if (n %% 2 != 0)
-    ww = 1
-  n = n - ww
+    n = n - 1
   for (k in 1:3) {
     # DO TRANSFORM
-    newv = daub2(v, n, 1)
+    newv = daub2(v[1:n], 1)
     w[[k]] = newv[((n / 2) + 1):n]
     if (k < 3) {
       v = newv[1:(n / 2)] / sqrt(2)
       n = n / 2
-      ww = 0
       if (n %% 2 != 0)
-        ww = 1
-      n = n - ww
+        n = n - 1
     }
   }
   return(w)

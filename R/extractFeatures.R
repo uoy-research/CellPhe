@@ -214,9 +214,7 @@ extractFeatures = function(df,
       m = max(box[1], box[2])
       bfeatures[row_num, 9] = m / (box[1] + box[2])
       # FITTED POLYGON FEATURES (MAX_SIDE, MIN_ANGLE, ANGLE_VARIANCE, SIDE_LENGTH_VARIANCE)
-      for (k in 1:4) {
-        bfeatures[row_num, (k + 9)] = polyClass(boundary_coordinates)[k]
-      }
+      bfeatures[row_num, 10:13] <- polyClass(boundary_coordinates)
       
       # TEXTURE FEATURES
       # FIRST ORDER FEATURES
@@ -225,6 +223,7 @@ extractFeatures = function(df,
       tfeatures[row_num, 3] = e1071::skewness(cell_pixels[, 3], type = 2)
       # CALCULATE COOCCURRENCES MATRICES
       cooccurrence_levels = 10
+      # TODO refactor to separate mask and image rather than passing in whole sub_image_info
       cooc = cooccur(sub_image_info, cooccurrence_levels)
       # HARALICK FEATURES
       haralickfeatures01 <-
@@ -239,10 +238,7 @@ extractFeatures = function(df,
         tfeatures[row_num, (k + 31)] = haralickfeatures02[k]
       }
       # INTENSITY QUANTILE FEATURES
-      quantileVars = intensityQuantiles(boundary_coordinates, interior_pixels)
-      for (k in 1:9) {
-        tfeatures[row_num, (k + 45)] = quantileVars[[k]]
-      }
+      tfeatures[row_num, 46:54] <- intensityQuantiles(boundary_coordinates, interior_pixels)
     
       row_num <- row_num + 1
     }
@@ -309,43 +305,26 @@ subImageInfo = function(roi, frame) {
   matpix_type = t(apply(matpix_type, 1, fill_mask))
   
   # CHECK NEIGHBOURS OF MASK PIXELS
-  n = 1
-  while (n > 0) {
-    n = 0
-    for (j in 2:(height - 1)) {
-      # TODO vectorisable
-      for (i in 2:(width - 1)) {
-        if (matpix_type[j, i] == -1) {
-          if (matpix_type[j - 1, i] == 1) {
-            matpix_type[j - 1, i] = -1
-            n = 1
-          }
-          if (matpix_type[j, i - 1] == 1) {
-            matpix_type[j, i - 1] = -1
-            n = 1
-          }
-          if (matpix_type[j, i + 1] == 1) {
-            matpix_type[j, i + 1] = -1
-            n = 1
-          }
-          if (matpix_type[j + 1, i] == 1) {
-            matpix_type[j + 1, i] = -1
-            n = 1
-          }
-        }
-      }
+  while (TRUE) {
+    # find all values with -1
+    neg <- which(matpix_type == -1)
+    # generate coordinates of neighbours as x+1, x-1, x+nrow, x-nrow
+    neighbours <- c(neg, neg+1, neg-1, neg+height, neg-height)
+    neighbours <- unique(neighbours[neighbours > 0 & neighbours <= length(matpix_type)])  # As might find neighbours in first row/col
+    positive_neighbours <- neighbours[matpix_type[neighbours] == 1]
+    # set positive neighbours to be negative if any
+    if (length(positive_neighbours) == 0) {
+      break
     }
+    matpix_type[positive_neighbours] <- -1
   }
   
-  n = 1
-  intensities = matrix(nrow = width * height, ncol = 4)
-  for (i in 1:width) {
-    # TODO vectorisable
-    for (j in 1:height) {
-      intensities[n, ] = c(i, j, sub_image[j, i], matpix_type[j, i])
-      n = n + 1
-    }
-  }
+  intensities <- unname(as.matrix(
+    # expand.grid iterates over first column first, we want opposite
+    cbind(expand.grid(1:height, 1:width)[, c(2, 1)],
+    as.numeric(sub_image),
+    as.numeric(matpix_type))
+  ))
   
   # IDENTIFY INTERIOR PIXELS (WITHIN, BUT NOT ON THE CELL BOUNDARY)
   cellpixels = intensities[which(intensities[, 4] != -1), 1:3]
@@ -448,13 +427,12 @@ polyClass = function(bc) {
   mat01 = cbind(bc$x[points], bc$y[points], bc$x[points1], bc$y[points1])
   mat02 = cbind(bc$x[points], bc$y[points], bc$x[points2], bc$y[points2])
   mat12 = cbind(bc$x[points1], bc$y[points1], bc$x[points2], bc$y[points2])
-  Asq = apply(mat01, 1, sqreucdist)
-  Bsq = apply(mat12, 1, sqreucdist)
-  Csq = apply(mat02, 1, sqreucdist)
-  squaredLengths = rbind(Asq, Bsq, Csq)
-  maxLength = max(sqrt(Asq))
-  varLength = stats::var(sqrt(Asq))
-  angles = apply(squaredLengths, 2, polyAngle)
+  
+  mat_all <- array(c(mat01, mat12, mat02), dim=c(dim(mat01), 3))
+  squaredLengths <- (mat_all[, 1, ] - mat_all[, 3, ])**2 + (mat_all[, 2, ] - mat_all[, 4, ])**2
+  maxLength = max(sqrt(squaredLengths[, 1]))
+  varLength = stats::var(sqrt(squaredLengths[, 1]))
+  angles <- polyAngle(squaredLengths)
   minAngle = min(angles)
   varAngle = stats::var(angles)
   output = c(maxLength, minAngle, varAngle, varLength)
@@ -462,100 +440,71 @@ polyClass = function(bc) {
 }
 
 polygon = function(bc) {
-  thresh = 2.5
+  bc_df <- cbind(x=bc$x, y=bc$y)
   # FIND MAXIMUM DISTANCE FROM FIRST BOUNDARY POINT
-  d = cbind(bc$x, bc$y)
-  dd = as.matrix(stats::dist(d))
-  indkeep = which(dd[, 1] == max(dd[, 1]))
-  numpoints = 2
+  dd = as.matrix(stats::dist(bc_df))
+  indkeep = which.max(dd[, 1])
   pointArray = as.vector(c(1, indkeep))
-  alldone = 0
-  while (alldone == 0) {
+  previousArray = 1
+  while (length(pointArray) > length(previousArray)) {
     tempArray = 1
-    n = 0
-    alldone = 1
-    # TODO vectorisable
+    numpoints <- length(pointArray)
+    
     for (k in 2:numpoints) {
-      x1 = bc$x[pointArray[k - 1]]
-      y1 = bc$y[pointArray[k - 1]]
-      x2 = bc$x[pointArray[k]]
-      y2 = bc$y[pointArray[k]]
-      # COEFFICIENTS IN EQUATION POF THE LINE
-      a = y2 - y1
-      b = x2 - x1
-      c = -a * x1 + b * y1
-      denom = sqrt(a * a + b * b)
-      lcoeffs = c(a, b, c, denom)
-      # BOUNDARY POINTS TO CHECK DISTANCE FROM
-      if ((pointArray[k] - pointArray[k - 1]) > 4) {
-        x0 = bc$x[(pointArray[k - 1] + 1):(pointArray[k] - 1)]
-        y0 = bc$y[(pointArray[k - 1] + 1):(pointArray[k] - 1)]
-        v = cbind(x0, y0)
-        v = stats::na.omit(v)
-        dist = apply(v, 1, pointttolinedist, lcoeffs)
-        indkeep = which(dist == max(dist))
-        if (max(dist) > thresh) {
-          tempArray = c(tempArray, (pointArray[k - 1] + indkeep[1]))
-          alldone = 0
-          n = n + 1
-        }
+      out <- poly_distance(bc_df, pointArray, k-1, k, FALSE)
+      if (!is.na(out)) {
+        tempArray <- c(tempArray, out)
       }
+      # TODO better way to do this than vector concatenation?
       tempArray = c(tempArray, pointArray[k])
     }
     # NOW DO LINE BACK TO START
-    x1 = bc$x[pointArray[numpoints]]
-    y1 = bc$y[pointArray[numpoints]]
-    x2 = bc$x[pointArray[1]]
-    y2 = bc$y[pointArray[1]]
-    # COEFFICIENTS IN EQUATION POF THE LINE
-    a = y2 - y1
-    b = x2 - x1
-    c = -a * x1 + b * y1
-    denom = sqrt(a * a + b * b)
-    lcoeffs = c(a, b, c, denom)
-    # BOUNDARY POINTS TO CHECK DISTANCE FROM
-    if ((bc$length - pointArray[numpoints]) > 4) {
-      x0 = bc$x[(pointArray[numpoints] + 1):bc$length]
-      y0 = bc$y[(pointArray[numpoints] + 1):bc$length]
-      v = cbind(x0, y0)
-      v = stats::na.omit(v)
-      dist = apply(v, 1, pointttolinedist, lcoeffs)
-      indkeep = which(dist == max(dist))
-      if (max(dist) > thresh) {
-        tempArray = c(tempArray, (pointArray[numpoints] + indkeep[1]))
-        alldone = 0
-        n = n + 1
-      }
+    out <- poly_distance(bc_df, pointArray, numpoints, 1, TRUE)
+    if (!is.na(out)) {
+      tempArray <- c(tempArray, out)
     }
-    pointArray = tempArray
-    numpoints = numpoints + n
+    previousArray <- pointArray
+    pointArray <- tempArray
   }
   return(pointArray)
 }
 
-pointttolinedist = function(v, lc) {
-  x = v[1]
-  y = v[2]
-  # TODO vectorisable
-  numer = abs(lc[1] * x - lc[2] * y + lc[3])
-  denom = lc[4]
-  dist = numer / denom
-  return (dist)
-}
-
-sqreucdist = function(v) {
-  dist = (v[1] - v[3]) * (v[1] - v[3]) + (v[2] - v[4]) * (v[2] - v[4])
-  return (dist)
+poly_distance <- function(df, points, i1, i2, final, thresh=2.5) {
+    if (final) {
+      end <- nrow(df)
+      end_v <- end
+    } else {
+      end <- points[i2]
+      end_v <- end - 1
+    }
+  
+    if ((end - points[i1]) <= 4) {
+      return(NA)
+    }
+    
+    c1 <- df[points[i1], ]
+    c2 <- df[points[i2], ]
+    diff_rows <- rev(c2 - c1)
+    diff_rows[1] <- -diff_rows[1]
+    c_vals <- sum(diff_rows * c1)
+    denom2 <- sqrt(sum(diff_rows**2))
+    v_df <- df[(points[i1]+1) : end_v, ]
+    v_df <- v_df[complete.cases(v_df), ]  # TODO is this needed or can it be replaced?
+    v_diff <- -v_df %*% diag(diff_rows)
+    dist2 <- abs(v_diff[, 1] + v_diff[, 2] + c_vals) / denom2
+    
+    if (max(dist2) > thresh) {
+      points[i1] + which.max(dist2)
+    } else {
+      NA
+    }
 }
 
 polyAngle = function(v) {
-  angle = 2.0 * pi
-  a = sqrt(v[1])
-  b = sqrt(v[2])
-  if (abs((v[1] + v[2] - v[3]) / (2.0 * a * b) - 1.0) > 0.001) {
-    angle = acos((v[1] + v[2] - v[3]) / (2.0 * a * b))
-  }
-  return(angle)
+  a <- sqrt(v[, 1])
+  b <- sqrt(v[, 2])
+  calc <- (v[, 1] + v[, 2] - v[, 3]) / (2.0 * a * b)
+  ifelse(abs(calc - 1.0) > 0.001, acos(calc), 2.0*pi)
 }
 
 cooccur = function(mini_image_info, nc) {
@@ -588,7 +537,7 @@ waveTran2D = function(image) {
   if (ww == 1)
     temp = rbind(temp, temp[height, ])
   # do one level y transform
-  w = apply(temp, 2, daub2, (height + ww), 1)
+  w = apply(temp, 2, daub2, 1)
   # do one level x transform
   temp = w[1:((height + ww) / 2), ] / sqrt(2)
   ww = 0
@@ -596,36 +545,31 @@ waveTran2D = function(image) {
     ww = 1
   if (ww == 1)
     temp = cbind(temp, temp[, width])
-  w = apply(temp, 1, daub2, (width + ww), 1)
+  w = apply(temp, 1, daub2, 1)
   output = w[1:((width + ww) / 2), ] / sqrt(2)
   return(t(output))
 }
 
-daub2 = function(a, n, isign) {
+daub2 = function(a, isign) {
+  n <- length(a)
+  if (n < 3) return()
   D0 = 0.70710678
   D1 = 0.70710678
-  wa = c(1:n)
-  if (n >= 4) {
-    nh = n / 2
-    if (isign == 1) {
-      i = 1
-      # TODO vectorisable
-      for (j in seq(1, n, 2)) {
-        wa[i] = D0 * a[j] + D1 * a[j + 1]
-        wa[i + nh] = D1 * a[j] - D0 * a[j + 1]
-        i = i + 1
-      }
-    }
-    else if (isign == -1) {
-      j = 1
-      for (i in 1:nh) {
-        wa[j] = D0 * a[i] + D1 * a[i + nh]
-        wa[j + 1] = D1 * a[i] - D0 * a[i + nh]
-        j = j + 2
-      }
-    }
-    return(wa)
+  wa = numeric(n)
+  nh = n / 2
+  D0_a <- D0 * a
+  D1_a <- D1 * a
+  odd <- seq(1, n, 2)
+  even <- odd + 1
+  if (isign == 1) {
+    wa[1:nh] <- D0_a[even] + D1_a[odd]
+    wa[(nh+1):n] <- D1_a[odd] - D0_a[even]
   }
+  else if (isign == -1) {
+    wa[even] <- D0_a[1:nh] + D1_a[(nh+1):n]
+    wa[odd] <- D1_a[1:nh] - D0_a[(nh+1):n]
+  }
+  wa
 }
 
 doubleImage = function(image) {
@@ -639,6 +583,7 @@ doubleImage = function(image) {
 doublevector = function(v) {
   n = length(v)
   s = rep(0, (2 * n))
+  # TODO vectorize
   for (i in 1:n) {
     s[(2 * i) - 1] = v[i]
     s[(2 * i)] = v[i]
@@ -647,18 +592,17 @@ doublevector = function(v) {
 }
 
 getCoocMatrix = function(image1, image2, mask, nc) {
-  cooc = matrix(0, nrow = nc, ncol = nc)
   image1 = rescale(image1, nc)
   image2 = rescale(image2, nc)
-  for (i in 1:nrow(image1)) {
-    # TODO vectorisable
-    for (j in 1:ncol(image1)) {
-      if (mask[i, j] != 0) {
-        cooc[image1[i, j], image2[i, j]] = cooc[image1[i, j], image2[i, j]] + 1
-      }
-    }
-  }
-  return(cooc)
+  cooc = matrix(0, nrow = nc, ncol = nc)
+  masked <- mask == 1
+  xs <- floor(image1[masked])
+  ys <- floor(image2[masked])
+  positive_coordinates <- xs > 0 & ys > 0
+  flattened <- xs[positive_coordinates] + nc * (ys[positive_coordinates] - 1)
+  counts <- tabulate(flattened)
+  cooc[seq_along(counts)] <- counts
+  cooc
 }
 
 rescale = function(image, nc) {
@@ -754,14 +698,14 @@ calculateHaralickFeatures = function(glcm)
 
 intensityQuantiles = function(bc, intensities)
 {
+  # I've spent ages trying to optimise this by calculating the distance matrix
+  # up front to save calculating it 10 times, but the indexing or required matrix conversion
+  # is so awkward that it doesn't result in a speed up
   qs = stats::quantile(intensities[, 3], probs = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9))
-  quantileVars <- vector(mode = "list", length = length(qs))
-  for (i in 1:length(qs)) {
-    s = subset(intensities, intensities[, 3] >= qs[i])
-    d = as.vector(stats::dist(s[, 1:2]))
-    quantileVars[[i]] = stats::var(d) / mean(d)
-  }
-  return(quantileVars)
+  vapply(qs, function(thresh) {
+    d = stats::dist(intensities[intensities[, 3] >= thresh, 1:2])
+    stats::var(d) / mean(d)
+  }, numeric(1))
 }
 
 densityCalc = function(df, radius_threshold=6) {
