@@ -4,25 +4,12 @@
 \alias{predictSegErrors}
 \title{Train and test decision trees for segmentation error prediction}
 \usage{
-predictSegErrors(
-  smalldata,
-  bigdata,
-  smallclass,
-  bigclass,
-  num,
-  testset,
-  dataID,
-  proportion
-)
+predictSegErrors(segerrors, correctsegs, num, testset, dataID, proportion)
 }
 \arguments{
-\item{smalldata}{Output from \code{prepareSegmentationTrainingSet()} - feature table of either segmentation errors or correctly segmented cells, whichever has the \bold{lowest} sample size}
+\item{segerrors}{A feature table of ground truth segmentation errors}
 
-\item{bigdata}{Output from \code{prepareSegmentationTrainingSet()} - feature table of either segmentation errors or correctly segmented cells, whichever has the \bold{greatest} sample size}
-
-\item{smallclass}{Output from \code{prepareSegmentationTrainingSet()} - list of class labels for the class with the smallest sample size}
-
-\item{bigclass}{Output from \code{prepareSegmentationTrainingSet()} - list of class labels for the class with the largest sample size}
+\item{correctsegs}{A feature table of ground truth correctly segmented cells}
 
 \item{num}{Number of decision trees to be trained}
 
@@ -39,7 +26,4 @@ This function returns the list of identifiers that were predicted as segmentatio
 This function trains \code{num} decision trees and uses them to predict whether or not new cells experience segmentation errors. Final classifications are
 made via a voting system, where a cell is classified as segmentation error if more than a defined \code{proportion} of decision trees predict it as such. This code outputs a list
 of cells that were classified as segmentation error.
-}
-\examples{
-segmentation_errors <- predictSegErrors(segerrordata, correctsegdata, segerrorlabels, correctseglabels, 50, testset, testset$cellnames, 0.7)
 }

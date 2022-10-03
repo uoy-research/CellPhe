@@ -11,24 +11,9 @@ prepareSegmentationTrainingSet(segerrors, correctsegs)
 
 \item{correctsegs}{A feature table of ground truth correctly segmented cells}
 }
-\value{
-This function outputs the following and stores each as a global variable:
-
-\code{segerrordata} - Original feature table of ground truth segmentation errors plus synthetic segmentation errors if this was the undersampled class
-
-\code{correctsegdata} - Original feature table of ground truth correctly segmented cells plus synthetic segmentation errors if this was the undersampled class
-
-\code{segerrorlabels} - List of true class labels for the segmentation error class
-
-\code{correctseglabels} - List of true class labels for the correctly segmented class
-}
 \description{
-This function prepares a training set that can be used for classication of cell segmentation errors. This includes use of the
-\code{smotefamily::SMOTE()} function to oversample the minority class to avoid biased classifier training. This function outputs feature tables
-for ground truth segmentation errors and correctly segmented cells (with smote data included for the previously undersampled class), as
+This function prepares a training set that can be used for classification of cell segmentation errors. This includes use of the
+\code{smotefamily::SMOTE()} function to over-sample the minority class to avoid biased classifier training. This function outputs feature tables
+for ground truth segmentation errors and correctly segmented cells (with smote data included for the previously under-sampled class), as
 well as a list of ground truth labels for each class.
-}
-\examples{
-prepareSegmentationTrainingSet(groundtruthsegerrors, groundtruthcorrectsegs)
-
 }
