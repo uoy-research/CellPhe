@@ -92,5 +92,3 @@ output in the form of a dataframe with the first column being the
 ``` r
 tsvariables <- varsFromTimeSeries(new_features)
 ```
-
-TODO classification/clustering
