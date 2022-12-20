@@ -21,7 +21,7 @@ Imports:
   ggplot2,
   MASS,
   ptinpoly,
-  randomForest
+  randomForest,
   smotefamily,
   tiff,
   tree
