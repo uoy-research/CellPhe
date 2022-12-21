@@ -22,7 +22,6 @@ Imports:
   MASS,
   ptinpoly,
   randomForest,
-  RImageJROI,
   smotefamily,
   tiff,
   tree

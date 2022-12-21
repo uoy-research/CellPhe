@@ -169,7 +169,7 @@ extractFeatures = function(df,
              cell_id,
              frame_id))
       }
-      roi = RImageJROI::read.ijroi(sprintf("%s/%s.roi", roi_folder, roi_fn))
+      roi = read.ijroi(sprintf("%s/%s.roi", roi_folder, roi_fn))
       # It is possible to have negative coordinates
       roi$coords[which(roi$coords < 0)] = 0
       # check whether cell too small in either direction
