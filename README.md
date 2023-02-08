@@ -4,6 +4,7 @@
 # CellPhe
 
 <!-- badges: start -->
+<a href="https://zenodo.org/badge/latestdoi/449769672"><img src="https://zenodo.org/badge/449769672.svg" alt="DOI"></a>
 <!-- badges: end -->
 
 CellPhe provides functions to accompany the paper (TODO Add reference
