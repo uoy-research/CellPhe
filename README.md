@@ -7,8 +7,11 @@
 <a href="https://zenodo.org/badge/latestdoi/449769672"><img src="https://zenodo.org/badge/449769672.svg" alt="DOI"></a>
 <!-- badges: end -->
 
-CellPhe provides functions to accompany the paper (TODO Add reference
-when available) to phenotype cells from time-lapse videos.
+CellPhe provides functions to phenotype cells from time-lapse videos and accompanies the paper:\
+Wiggins, L., Lord, A., Murphy, K.L. et al.\
+The CellPhe toolkit for cell phenotyping using time-lapse imaging and pattern recognition.\
+Nat Commun 14, 1854 (2023).\
+https://doi.org/10.1038/s41467-023-37447-3
 
 ## Installation
 
