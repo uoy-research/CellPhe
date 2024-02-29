@@ -2,6 +2,7 @@
 % Please edit documentation in R/CellPhe.R
 \docType{package}
 \name{CellPhe}
+\alias{CellPhe-package}
 \alias{CellPhe}
 \title{CellPhe: Toolkit for cell phenotyping from time-lapse videos.}
 \description{

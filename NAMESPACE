@@ -3,6 +3,7 @@
 export(calculateSeparationScores)
 export(cellPopulationClassification)
 export(copyFeatures)
+export(export_to_cellprofiler_analyst)
 export(extractFeatures)
 export(identifyHeterogeneousClusters)
 export(normaliseImage)
