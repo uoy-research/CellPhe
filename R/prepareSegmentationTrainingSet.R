@@ -10,8 +10,7 @@
 #' @param segerrors A feature table of ground truth segmentation errors
 #' @param correctsegs A feature table of ground truth correctly segmented cells
 #'
-#' 
-
+#' @export
 prepareSegmentationTrainingSet<-function(segerrors,correctsegs)
 {
   Segerrortraining <- segerrors
