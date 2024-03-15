@@ -21,12 +21,16 @@ export_to_cellprofiler_analyst <- function(features,
   #  - image id
   #  - image path (1 column per channel)
   #  - image filename (1 column per channel)
+  #  - Image_Group_Index (can be same as id for now)
+  #  - Image_Group_Number (can all 1s)
   # We only have 1 channel
   per_image <- features |>
                   dplyr::distinct(FrameID) |>
                   dplyr::mutate(
                     path_channel_1 = image_folder,
-                    filename_channel_1 = sprintf("%s-%04d.tif", image_prefix, FrameID)
+                    filename_channel_1 = sprintf("%s-%04d.tif", image_prefix, FrameID),
+                    Image_Group_Index = FrameID,
+                    Image_Group_Number = 1
                   )
   
   # the per_object table requires the following columns:
@@ -39,16 +43,44 @@ export_to_cellprofiler_analyst <- function(features,
   features <- features[, setdiff(colnames(features), "ROI_filename")]
   cell_fields <- setdiff(colnames(features), c("FrameID", "CellID", "xpos", "ypos"))
   
+  # We also need 3 more tables:
+  #  - FramePer_Relationships: mapping objects in sequential frames
+  frame_per_relationships <- features |>
+    dplyr::distinct(FrameID, CellID) |>
+    dplyr::inner_join(features |> dplyr::distinct(FrameID, CellID),
+               dplyr::join_by(CellID == CellID, FrameID < FrameID), suffix = c("1", "2")) |>
+    dplyr::group_by(CellID, FrameID1) |>
+    dplyr::top_n(-1, FrameID2) |>
+    dplyr::mutate(CellID2 = CellID, relationship_type_id = 1) |>
+    dplyr::select(
+      relationship_type_id,
+      image_number1 = FrameID1, 
+      object_number1 = CellID,
+      image_number2 = FrameID2, 
+      object_number2 = CellID2
+    )
+  #  - FramePer_RelationshipTypes: Possible relationship types
+  frame_per_relationship_types <- dplyr::tribble(
+    ~relationship_type_id, ~module_number, ~relationship, ~object_name1, ~object_name2,
+    # TODO make cell a constant as use it in properties if this works
+    1, 1, "Parent", "cell", "cell"
+  )
+  
+  #  - FramePer_RelationshipsView: A view combining the two tables above
+  
   # Create DB connection
   con <- DBI::dbConnect(RSQLite::SQLite(), db_filename)
   
   # Setup tables
   DBI::dbCreateTable(con, 
                      "frames", 
-                     c(
+          
+                                c(
                        "FrameID"="INTEGER", 
                        "path_channel_1"="TEXT",
-                       "filename_channel_1"="TEXT"
+                       "filename_channel_1"="TEXT",
+                       "Image_Group_Number"="INTEGER",
+                       "Image_Group_Index"="INTEGER"
                        )
                      )
   DBI::dbCreateTable(con, 
@@ -64,9 +96,46 @@ export_to_cellprofiler_analyst <- function(features,
                        )
                      ))
   
+  DBI::dbCreateTable(
+    con,
+    "FramePer_Relationships",
+    c(
+      "relationship_type_id"="INTEGER",
+      "image_number1"="INTEGER",
+      "object_number1"="INTEGER",
+      "image_number2"="INTEGER",
+      "object_number2"="INTEGER"
+    )
+  )
+  
+  DBI::dbCreateTable(
+    con,
+    "FramePer_RelationshipTypes",
+    c(
+      "relationship_type_id"="INTEGER",
+      "module_number"="INTEGER",
+      "relationship"="TEXT",
+      "object_name1"="TEXT",
+      "object_name2"="TEXT"
+    )
+  )
+  
+  DBI::dbExecute(
+    con,
+    "
+    CREATE VIEW FramePer_RelationshipsView AS 
+    SELECT module_number, relationship, object_name1, object_name2, 
+           image_number1, object_number1, image_number2, object_number2
+    FROM FramePer_Relationships fpr
+    INNER JOIN FramePer_RelationshipTypes fpt
+    ON fpr.relationship_type_id = fpt.relationship_type_id;
+  ")
+  
   # Populate tables
   DBI::dbAppendTable(con, "frames", per_image)
   DBI::dbAppendTable(con, "cells", features)
+  DBI::dbAppendTable(con, "FramePer_Relationships", frame_per_relationships)
+  DBI::dbAppendTable(con, "FramePer_RelationshipTypes", frame_per_relationship_types)
   
   DBI::dbDisconnect(con)
   
