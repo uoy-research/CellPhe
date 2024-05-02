@@ -208,7 +208,7 @@ extractFeatures = function(df,
       bfeatures[row_num, 7] = bfeatures[row_num, 6] / (bl * bl)
       # MINIMAL BOX TO AREA RATIO:
       # TODO vectorisable
-      bfeatures[row_num, 8] = (box[1] * box[2]) / bfeatures[row_num, 3]
+      bfeatures[row_num, 8] = (box[1] * box[2]) / bfeatures[row_num, 6]
       # RECTANGULARITY:
       # TODO vectorisable
       m = max(box[1], box[2])
