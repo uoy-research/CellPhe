@@ -397,16 +397,15 @@ minBox = function(bc) {
   # FIND MAXIMUM DISTANCE BETWEEN ANY TWO BOUNDARY POINTS
   d = cbind(bc$x, bc$y)
   dd = as.matrix(stats::dist(d))
-  k1 = which(dd == max(dd), arr.ind = T)[1]
-  k2 = which(dd == max(dd), arr.ind = T)[2]
-  keepx1 = bc$x[k1]
-  
-  keepy1 = bc$y[k1]
-  
-  keepx2 = bc$x[k2]
-  
-  keepy2 = bc$y[k2]
-  
+  max_index <- which.max(dd)
+  n_points <- length(bc$x)
+  row <- (max_index-1) %% n_points + 1
+  col <- floor((max_index-1) / n_points) + 1
+  keepx1 <- bc$x[row]
+  keepy1 <- bc$y[row]
+  keepx2 <- bc$x[col]
+  keepy2 <- bc$y[col]
+
   alpha = atan2((keepy1 - keepy2), (keepx1 - keepx2))
   # rotating points by -alpha makes keepx1-keepx2 lie along x-axis
   roty = keepy1 - sin(alpha) * (bc$x - keepx1) + cos(alpha) * (bc$y - keepy1)
