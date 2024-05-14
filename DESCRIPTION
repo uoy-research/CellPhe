@@ -1,6 +1,6 @@
 Package: CellPhe
 Title: Toolkit for cell phenotyping from time-lapse videos
-Version: 0.0.0.9000
+Version: 1.0.1
 Authors@R: 
     person(given = "First",
            family = "Last",

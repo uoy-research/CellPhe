@@ -86,8 +86,8 @@ comparison <- sapply(cols_to_compare, function(col) {
 
 # The only failure is density and Cooc02 features, as we changed Density calculation
 # and CoocO2 was incorrectly returning wrong value before
-cat(sprintf("Columns have the same feature values after accounting for the 14 Cooc02 and 1 Density features that have had bug-fixes (%d/%d)\n", sum(comparison), length(comparison)))
-assertthat::are_equal(sum(comparison), 57)
+cat(sprintf("Columns have the same feature values after accounting for fixes to Cooc02 (14 features), Density, minBox (2), minBox:Area, rectangularity (%d/%d)\n", sum(comparison), length(comparison)))
+res <- assertthat::are_equal(sum(comparison), 53)
 results <- c(results, res)
 res
 
@@ -109,11 +109,9 @@ comparison <- sapply(colnames(tsvariables), function(col) {
   assertthat::are_equal(tsvariables[[col]], old_ts[, col])
 })
 
-# The only failure is density and Cooc02 derived features,
-# but again this is Cooc02 had a bug and Density calculation was changed
 cat("\nvarsFromTimeSeries\n~~~~~~~~~~~~~~~~~~\n")
-cat(sprintf("Columns have the same feature values after accounting for the 15 features (x15 time-series variables) that have had bug-fixes (%d/%d)\n", sum(comparison), length(comparison)))
-assertthat::are_equal(sum(comparison), 887)
+cat(sprintf("Columns have the same feature values after accounting for the 19 features (x15 time-series variables) that have had bug-fixes (%d/%d)\n", sum(comparison), length(comparison)))
+res <- assertthat::are_equal(sum(comparison), 828)
 results <- c(results, res)
 res
 
