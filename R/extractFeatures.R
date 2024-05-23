@@ -595,8 +595,8 @@ getCoocMatrix = function(image1, image2, mask, nc) {
   image2 = rescale(image2, nc)
   cooc = matrix(0, nrow = nc, ncol = nc)
   masked <- mask == 1
-  xs <- floor(image1[masked])
-  ys <- floor(image2[masked])
+  xs <- floor(image1[masked]+1e-6)
+  ys <- floor(image2[masked]+1e-6)
   positive_coordinates <- xs > 0 & ys > 0
   flattened <- xs[positive_coordinates] + nc * (ys[positive_coordinates] - 1)
   counts <- tabulate(flattened)
