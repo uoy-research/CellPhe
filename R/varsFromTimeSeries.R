@@ -68,7 +68,11 @@ varsFromTimeSeries = function(df) {
     vars = rbind(stats, eleVars, wVars)
     output[j, 1] <- cell_id
     output[j, 2:(numcols - 1)] = as.vector(vars)
-    output[j, numcols] = calculateTrajArea(df$xpos[df$CellID == cell_id], df$ypos[df$CellID == cell_id])
+    output[j, numcols] = calculateTrajArea(
+        df$xpos[df$CellID == cell_id],
+        df$ypos[df$CellID == cell_id],
+        max(frame_ids) - min(frame_ids) + 1
+    )
   }
   cn = colnames(vars)
   rn = c(
