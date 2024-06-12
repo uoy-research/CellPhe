@@ -728,13 +728,11 @@ densityCalc = function(df, radius_threshold=6) {
     dplyr::ungroup()
 }
 
-calculateTrajArea <- function(x, y)
+calculateTrajArea <- function(x, y, numframes)
 {
   xCentres <- stats::na.omit(x)
   yCentres <- stats::na.omit(y)
-  numframes = length(xCentres)
-  trajArea = ((max(xCentres) - min(xCentres)) * (max(yCentres) - min(yCentres))) /
-    numframes
+  trajArea = ((max(xCentres) - min(xCentres)) * (max(yCentres) - min(yCentres))) / numframes
   return(trajArea)
 }
 
