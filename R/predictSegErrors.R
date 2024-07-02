@@ -19,18 +19,18 @@ predictSegErrors<-function(segerrors, correctsegs,
                            num, testset, dataID, proportion) 
 { 
   seginfo<-prepareSegmentationTrainingSet(segerrors, correctsegs)
-  smalldata = seginfo[[1]]
-  bigdata = seginfo[[2]]
-  smallclass = seginfo[[3]]
-  bigclass = seginfo[[4]]
-  n1 = length(smallclass)
-  n2 = length(bigclass)
+  smalldata = seginfo$minority_data
+  bigdata = seginfo$majority_data
+  smallclass = seginfo$minority_class
+  bigclass = seginfo$majority_class
+  n1 = nrow(smalldata)
+  n2 = nrow(bigdata)
   treelist = list()
   for (i in 1:num)
   { 
     inds = sample.int(n2, n1)
     data = rbind(bigdata[inds,],smalldata)
-    class = c(bigclass[1:n1], smallclass)
+    class = c(rep(bigclass, n1), rep(smallclass, n1))
     data = data.frame(class, data)
     mytree = tree::tree(as.factor(class)~., data=data)
     treelist[[i]] <- mytree 
