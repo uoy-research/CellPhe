@@ -9,9 +9,11 @@
 #'
 #' @param segerrors A feature table of ground truth segmentation errors
 #' @param correctsegs A feature table of ground truth correctly segmented cells
+#' @param dup_size Passed to smotefamily::SMOTE. The number of times to
+#' duplicate the minority class.
 #'
 #' @export
-prepareSegmentationTrainingSet<-function(segerrors,correctsegs)
+prepareSegmentationTrainingSet<-function(segerrors,correctsegs, dup_size=1)
 {
   alldata = rbind(segerrors, correctsegs)[, -1]
   
@@ -21,7 +23,7 @@ prepareSegmentationTrainingSet<-function(segerrors,correctsegs)
   class = c(class1, class2)
   
   ## SMOTE() to over-sample segmentation errors 
-  smoteseg<-smotefamily::SMOTE(alldata, class, K = 3, dup_size = 1)
+  smoteseg<-smotefamily::SMOTE(alldata, class, K = 3, dup_size = dup_size)
   
   ## add smote segmentation errors to the training sets and update segmentation error data table
   smotesegsyn_data<-smoteseg$syn_data[,c((dim(segerrors)[2]), 1:(dim(segerrors)[2]-1))] 

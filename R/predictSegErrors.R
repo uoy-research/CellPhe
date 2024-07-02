@@ -11,14 +11,16 @@
 #' @param testset Test set for segmentation error predictions to be made
 #' @param dataID List of test set identifiers (e.g. cell IDs)
 #' @param proportion Proportion of votes needed for a final classification of segmentation error to be made (e.g. 0.7 if 70% of the votes are needed for segmentation error classification to be made)
+#' @param dup_size Passed to smotefamily::SMOTE. The number of times to
+#' duplicate the minority class.
 #'
 #' @return This function returns the list of identifiers that were predicted as segmentation errors
 
 #' @export
 predictSegErrors<-function(segerrors, correctsegs,
-                           num, testset, dataID, proportion) 
+                           num, testset, dataID, proportion, dup_size=1)
 { 
-  seginfo<-prepareSegmentationTrainingSet(segerrors, correctsegs)
+  seginfo<-prepareSegmentationTrainingSet(segerrors, correctsegs, dup_size)
   smalldata = seginfo$minority_data
   bigdata = seginfo$majority_data
   smallclass = seginfo$minority_class
