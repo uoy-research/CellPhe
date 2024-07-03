@@ -9,34 +9,31 @@
 #'
 #' @param segerrors A feature table of ground truth segmentation errors
 #' @param correctsegs A feature table of ground truth correctly segmented cells
+#' @param dup_size Passed to smotefamily::SMOTE. The number of times to
+#' duplicate the minority class.
 #'
 #' @export
-prepareSegmentationTrainingSet<-function(segerrors,correctsegs)
+prepareSegmentationTrainingSet<-function(segerrors,correctsegs, dup_size=1)
 {
-  Segerrortraining <- segerrors
-  Correctsegtraining <- correctsegs
-  
-  ## collate correct segmentation and segmentation error data into one data frame
-  data = rbind(Segerrortraining, Correctsegtraining) 
-  segerrordata<-Segerrortraining[,-1] 
-  correctsegdata<-Correctsegtraining[,-1]
-  alldata = rbind(segerrordata, correctsegdata)
+  alldata = rbind(segerrors, correctsegs)[, -1]
   
   ## first column lists ground truth data labels
-  class1 = rep("segerror", dim(segerrordata)[1])
-  class2 = rep("correct", dim(correctsegdata)[1]) 
+  class1 = rep("segerror", nrow(segerrors))
+  class2 = rep("correct", nrow(correctsegs))
   class = c(class1, class2)
-  all = data.frame(class, alldata)
   
   ## SMOTE() to over-sample segmentation errors 
-  smoteseg<-smotefamily::SMOTE(all[,-1], all$class, K = 3, dup_size = 1)
+  smoteseg<-smotefamily::SMOTE(alldata, class, K = 3, dup_size = dup_size)
   
   ## add smote segmentation errors to the training sets and update segmentation error data table
   smotesegsyn_data<-smoteseg$syn_data[,c((dim(segerrors)[2]), 1:(dim(segerrors)[2]-1))] 
-  all<-rbind(all, smoteseg$syn_data) 
-  segdata<-rbind(segerrordata, smotesegsyn_data[,-1]) 
-  newclass<-c(class, smotesegsyn_data[,1]) 
-  class1 = rep("segerror", dim(segerrordata)[1])
-  seginfo<-list(segerrordata, correctsegdata, class1, class2)
-  return(seginfo)
+  list(
+    minority_data = rbind(
+      smoteseg$orig_P,
+      smoteseg$syn_data
+    )[, -ncol(smoteseg$orig_P)],
+    majority_data=smoteseg$orig_N[, -ncol(smoteseg$orig_N)],
+    minority_class=smoteseg$orig_P$class[1],
+    majority_class=smoteseg$orig_N$class[1]
+  )
 }
