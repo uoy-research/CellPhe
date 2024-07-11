@@ -11,12 +11,13 @@ identifyHeterogeneousClusters<-function(dataset, dataID, k)
 {
   d<-stats::dist(scale(dataset), method = "euclidean")
   hierclust<-factoextra::hcut(d, hc_func = "agnes", hc_method = "ward.D", hc_metric = "euclidean", k = k)
-  factoextra::fviz_dend(hierclust, show_labels = FALSE)+ggplot2::theme_classic(base_size = 20)
+  p <- factoextra::fviz_dend(hierclust, show_labels = FALSE)+ggplot2::theme_classic(base_size = 20)
+  print(p)
   
   cellclusters<-matrix(nrow = dim(dataset)[1], ncol = k)
   for(j in 1:k)
   {
-    l = 0
+    l = 1
     for (i in 1:dim(dataset)[1]) 
     {
       if(hierclust$cluster[i] == j)
