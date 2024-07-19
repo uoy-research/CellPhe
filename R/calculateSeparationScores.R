@@ -24,12 +24,12 @@ calculateSeparationScores<-function(group1data, group2data, threshold = 0, calcu
     separation = Vb/Vw
     separationscores[i,3]=separation
   }
-  separationscores[,3]=separationscores[,3]
+  separationscores <- separationscores[!is.na(separationscores[, 3]), ]
   
   if(calculateOptimalThresh == TRUE)
   {
-    optThresh<-optimalSepThreshold(group1data, group2data)
-    separationscores<-subset(separationscores, separationscores[,3] >= optThresh)
+    optimal_subset <-optimalSepThreshold(group1data, group2data, separationscores)
+    separationscores<-subset(separationscores, separationscores[,2] %in% optimal_subset)
   }
   
   else
