@@ -10,22 +10,15 @@
 #' @param group2name A name for group 2 cells
 #' 
 #'
-#' @return an optimal separation threshold
-#' 
-#' @export
+#' @return A character vector containing the names of the optimal set of features
 optimalSepThreshold<-function(group1data, group2data, seps){
-  varinds = seps[,1]
   scores = seps[,3]
   ordered = scores[order(-scores)]
   mins = min(ordered)
   maxs = max(ordered)
-  n = c(0:(length(ordered)-1))
-  d = rep(0,length(ordered))
-  for (i in 1:length(ordered)){
-    d[i] = ((mins-maxs)*n[i])/(length(ordered)-1) + maxs - ordered[i]
-  }
-  ind = which(d == max(d))
+  indices = 0:(length(ordered)-1)
+  dists = ((mins-maxs)*indices)/(length(ordered)-1) + maxs - ordered
+  ind = which.max(dists)
   thresh = ordered[ind]
-  chosen = seps[, 2][which(scores > thresh)]
-  return(chosen)
+  seps[, 2][which(scores > thresh)]
 }
