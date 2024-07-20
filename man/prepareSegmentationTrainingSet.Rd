@@ -4,12 +4,15 @@
 \alias{prepareSegmentationTrainingSet}
 \title{Prepare a training set for classification of cell segmentation errors}
 \usage{
-prepareSegmentationTrainingSet(segerrors, correctsegs)
+prepareSegmentationTrainingSet(segerrors, correctsegs, dup_size = 1)
 }
 \arguments{
 \item{segerrors}{A feature table of ground truth segmentation errors}
 
 \item{correctsegs}{A feature table of ground truth correctly segmented cells}
+
+\item{dup_size}{Passed to smotefamily::SMOTE. The number of times to
+duplicate the minority class.}
 }
 \description{
 This function prepares a training set that can be used for classification of cell segmentation errors. This includes use of the
