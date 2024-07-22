@@ -4,7 +4,15 @@
 \alias{predictSegErrors}
 \title{Train and test decision trees for segmentation error prediction}
 \usage{
-predictSegErrors(segerrors, correctsegs, num, testset, dataID, proportion)
+predictSegErrors(
+  segerrors,
+  correctsegs,
+  num,
+  testset,
+  dataID,
+  proportion,
+  dup_size = 1
+)
 }
 \arguments{
 \item{segerrors}{A feature table of ground truth segmentation errors}
@@ -18,6 +26,9 @@ predictSegErrors(segerrors, correctsegs, num, testset, dataID, proportion)
 \item{dataID}{List of test set identifiers (e.g. cell IDs)}
 
 \item{proportion}{Proportion of votes needed for a final classification of segmentation error to be made (e.g. 0.7 if 70\% of the votes are needed for segmentation error classification to be made)}
+
+\item{dup_size}{Passed to smotefamily::SMOTE. The number of times to
+duplicate the minority class.}
 }
 \value{
 This function returns the list of identifiers that were predicted as segmentation errors

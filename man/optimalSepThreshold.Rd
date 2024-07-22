@@ -4,7 +4,7 @@
 \alias{optimalSepThreshold}
 \title{Determine optimal separation threshold}
 \usage{
-optimalSepThreshold(group1data, group2data)
+optimalSepThreshold(group1data, group2data, seps)
 }
 \arguments{
 \item{group1data}{Feature table for group 1}
@@ -16,7 +16,7 @@ optimalSepThreshold(group1data, group2data)
 \item{group2name}{A name for group 2 cells}
 }
 \value{
-an optimal separation threshold
+A character vector containing the names of the optimal set of features
 }
 \description{
 Determines the optimal separation threshold using the method described in the CellPhe paper
